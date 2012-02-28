@@ -15,6 +15,7 @@ var querystring = require("querystring"),
 
         var channel = 'messages';
     var socket_id = '1302.1081607';
+    var form = new formidable.IncomingForm();
     
 
 var counter = 0;
@@ -43,7 +44,7 @@ function start(response) {
 function upload(response, request) {
   console.log("Request handler 'upload' was called.");
 
-  var form = new formidable.IncomingForm();
+//  var form = new formidable.IncomingForm();
   //form.uploadDir = "/img";
   console.log("about to parse:");
   console.log( request );
@@ -155,52 +156,48 @@ function ticker(response, request){
 * TEXTSEND
 */
 function textsend(response,request){
-  var body = '<html>'+
+  var body ='';
+  body = '<html>'+
     '<head>'+
     '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'+
     '</head>'+
     '<body>'+
-    '<form action="/textsend"  method="post">'+
-    '<input type="text" name="text">'+
-    '<input type="submit" value="Send text" />' +
+    '<form action="/textsend"  method="POST">'+
+    '<input type="text" name="tekst">'+
+    '<input type="submit" value="Sendtext" />' +
     '</form>'+
     '</body>'+
     '</html>';
+    //response.writeHead(200, { "Content-Type": "text/html" });
+    response.write(body);
+    response.end();
 
     var channel = 'messages';
     var event = 'new_text';
-    
-    var form = new formidable.IncomingForm();
-   // console.log(request);
-   form.parse(request, function(error, fields, files){
-     console.log("parsing");
-     
-     console.log(fields);
-      
-      
-      pusher.trigger(channel, event, fields, socket_id, function(error, request, response) {});
-      
-       });
-      
-      
-      
-    
-      
- //  });
-    
-    
-    
-    
-
-
     var data = {text:"test"};
+    
+   console.log(request);
+   //form.parse(request, function(error, fields, files){
+     console.log("parsing");
+     //console.log(fields);
+      
+      
+      pusher.trigger(channel, event, data, socket_id, function(error, request, response) {});
+      
+    //   });
+    
+      
+    
+    
+    
+    
+
+
     //pusher.trigger( channel, event, data, socket_id, function(error, request, response ) {});
 
 
 
-    response.writeHead(200, { "Content-Type": "text/html" });
-    response.write(body);
-    response.end();
+
   
 }
 
