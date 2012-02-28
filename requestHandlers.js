@@ -172,15 +172,19 @@ function textsend(response,request){
     
     var form = new formidable.IncomingForm();
    // console.log(request);
-    form.parse(request, function(error, fields, files){
-      console.log("parsing");
+   form.parse(request, function(error, fields, files){
+     console.log("parsing");
+     
+     console.log(fields);
       
-      console.log(fields);
+      
       pusher.trigger(channel, event, fields, socket_id, function(error, request, response) {});
       
+       });
       
       
-    });
+      
+    
       
  //  });
     
