@@ -20,7 +20,7 @@ $(function() {
   var channel = pusher.subscribe('messages');
 	channel.bind('new_text', function(msg){
 		console.log(msg);
-		$("#msg").append("<li>"+msg.text+"</li>");
+		$("#msg").append("<li>"+msg.sendtext+"</li>");
 	});
 	channel.bind('new_image', function(msg){
 		console.log(msg);

@@ -163,7 +163,7 @@ function textsend(res,req){
     '</head>'+
     '<body>'+
     '<form action="/textsend"  method="POST">'+
-    '<input type="text" name="tekst">'+
+    '<input type="text" name="sendtext">'+
     '<input type="submit" value="Sendtext" />' +
     '</form>'+
     '</body>'+
@@ -176,15 +176,17 @@ function textsend(res,req){
     var event = 'new_text';
     var data = {text:"test"};
     
-   console.log(req);
-   //form.parse(request, function(error, fields, files){
+   //console.log(req);
+   form.parse(req, function(error, fields, files){
      console.log("parsing");
-     //console.log(fields);
+     console.log(fields);
       
       
-      pusher.trigger(channel, event, data, socket_id, function(error, request, response) {});
+      pusher.trigger(channel, event, fields, socket_id, function(error, request, response) {
+        
+      });
       
-    //   });
+   });
     
       
     
