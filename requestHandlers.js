@@ -6,7 +6,7 @@ var querystring = require("querystring"),
     
     
     
-    var publisher = redis.createClient();
+    //var publisher = redis.createClient();
     var pusher = new Pusher({
           appId: '15933',
           key: 'b060dbe058972b568c93',
