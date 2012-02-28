@@ -155,14 +155,14 @@ function ticker(response, request){
 /*
 * TEXTSEND
 */
-function textsend(res,req){
+function sendtext(res,req){
   var body ='';
   body = '<html>'+
     '<head>'+
     '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'+
     '</head>'+
     '<body>'+
-    '<form action="/textsend"  method="POST">'+
+    '<form action="/sendtext"  method="POST">'+
     '<input type="text" name="sendtext">'+
     '<input type="submit" value="Sendtext" />' +
     '</form>'+
@@ -209,4 +209,4 @@ exports.start = start;
 exports.upload = upload;
 exports.show = show;
 exports.ticker = ticker;
-exports.textsend = textsend;
+exports.sendtext = sendtext;

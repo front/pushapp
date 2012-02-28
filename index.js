@@ -8,7 +8,7 @@ handle["/start"] = requestHandlers.start;
 handle["/upload"] = requestHandlers.upload;
 handle["/show"] = requestHandlers.show;
 handle["/ticker"] = requestHandlers.ticker;
-handle["/textsend"] = requestHandlers.textsend;
+handle["/sendtext"] = requestHandlers.sendtext;
 
 
 
