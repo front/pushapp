@@ -1,8 +1,8 @@
 var querystring = require("querystring"),
     fs = require("fs"),
     formidable = require("formidable"),
-    Pusher = require("node-pusher"),
-    redis = require("redis");
+    Pusher = require("node-pusher");
+    //redis = require("redis");
     
     
     
