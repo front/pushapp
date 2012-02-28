@@ -155,7 +155,7 @@ function ticker(response, request){
 /*
 * TEXTSEND
 */
-function textsend(response,request){
+function textsend(res,req){
   var body ='';
   body = '<html>'+
     '<head>'+
@@ -169,14 +169,14 @@ function textsend(response,request){
     '</body>'+
     '</html>';
     //response.writeHead(200, { "Content-Type": "text/html" });
-    response.write(body);
-    response.end();
+    res.write(body);
+    res.end();
 
     var channel = 'messages';
     var event = 'new_text';
     var data = {text:"test"};
     
-   console.log(request);
+   console.log(req);
    //form.parse(request, function(error, fields, files){
      console.log("parsing");
      //console.log(fields);
