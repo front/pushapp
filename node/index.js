@@ -9,6 +9,8 @@ handle["/upload"] = requestHandlers.upload;
 handle["/show"] = requestHandlers.show;
 handle["/ticker"] = requestHandlers.ticker;
 handle["/sendtext"] = requestHandlers.sendtext;
+handle["/receive_postmark_data"] = requestHandlers.receive_postmark_data;
+
 
 
 
