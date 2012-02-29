@@ -1,0 +1,53 @@
+body {
+background: url(./black-linen.png) 0 0 repeat;
+color: #ccc;
+font-family: tahoma, sans-serif;
+font-size: 16px;
+text-shadow: 1px 1px #111;
+}
+
+.wrapper {
+width: 800px;
+margin: 0 auto;
+}
+
+h1 {
+font-size: 14px;
+text-align: center;
+}
+
+ul {
+padding: 0;
+}
+
+li {
+list-style: none;
+color: #E03B70;
+font-size: 40px;
+line-height: 50px;
+padding: 20px 5px;
+font-weight: bold;
+text-align: center;
+width: 780px;
+border-bottom: 1px dotted #000;
+opacity: 1;
+transition: opacity .25s ease-in-out;
+-moz-transition: opacity .25s ease-in-out;
+-webkit-transition: opacity .25s ease-in-out;
+-webkit-animation:bounceIn 2s;
+}
+
+img {
+max-width: 400px;
+max-height: 400px;
+}
+
+
+.connection {
+margin-top: 40px;
+text-align: center;
+}
+
+#conn_status {
+color: #91D6BC;
+}
