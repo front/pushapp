@@ -1,6 +1,6 @@
 var http = require("http");
 var url = require("url");
-var querystring = require("querystring");
+
 
 
 function start(route, handle) {
@@ -17,10 +17,14 @@ function start(route, handle) {
     postData += postDataChunk;
     //console.log("Received POST data chunk '" + postDataChunk + "'.");
   });
+  
   request.addListener("end", function() {
-    route(handle, pathname, response, request, postData);    
+    if (postData)
+      require('./requestHandlers.js').handlePostData(pathname, response, request, postData);    
   });
 }
+
+
 
   http.createServer(onRequest).listen(8888);
   console.log("Server has started.");

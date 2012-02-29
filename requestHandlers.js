@@ -18,9 +18,9 @@ var querystring = require("querystring"),
     var form = new formidable.IncomingForm();
     
 
-var counter = 0;
-
-
+/*
+ *  START
+ */
 function start(response) {
   console.log("Request handler 'start' was called.");
 
@@ -41,6 +41,9 @@ function start(response) {
     response.end();
 }
 
+/*
+ *  UPLOAD
+ */
 function upload(response, request) {
   console.log("Request handler 'upload' was called.");
 
@@ -102,6 +105,9 @@ function show(response) {
     }
   });
 }
+
+
+
 /*
  *  TICKER
  */
@@ -156,57 +162,53 @@ function ticker(response, request){
 * TEXTSEND
 */
 function sendtext(res,req){
-  var body ='';
-  body = '<html>'+
+  
+  if (req.method = "GET"){
+
+    console.log(" GET");
+    //console.log(res);
+    //console.log("req:");
+    //console.log(req);
+    var body ='';
+    body = '<html>'+
     '<head>'+
     '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'+
     '</head>'+
     '<body>'+
     '<form action="/sendtext"  method="POST">'+
     '<input type="text" name="sendtext">'+
-    '<input type="submit" value="Sendtext" />' +
+    '<input type="submit" value="sendtext" />' +
     '</form>'+
     '</body>'+
     '</html>';
-    //response.writeHead(200, { "Content-Type": "text/html" });
+
+    res.writeHead(200, { "Content-Type": "text/html" });
     res.write(body);
+    res.method = "POST";
     res.end();
 
-    var channel = 'messages';
-    var event = 'new_text';
-    var data = {text:"test"};
-    
-   //console.log(req);
-   form.parse(req, function(error, fields, files){
-     console.log("parsing");
-     console.log(fields);
-      
-      
-      pusher.trigger(channel, event, fields, socket_id, function(error, request, response) {
-        
-      });
-      
-   });
-    
-      
-    
-    
-    
-    
-
-
-    //pusher.trigger( channel, event, data, socket_id, function(error, request, response ) {});
-
-
-
-
-  
+  }
+  else{ console.log("Error, was expecting GET data"); } 
 }
 
-
+/*
+ *  handlePostData
+ *
+ *  This is called from server each time there is postdata attached to the request.
+ *  It will always recevie the full batch of postdata.
+ */ 
+function handlePostData(pathname, response, request, postData) {
+  
+   var json = querystring.parse(postData);   
+   
+   var event = "new_text";
+   pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
+  
+  }
 
 exports.start = start;
 exports.upload = upload;
 exports.show = show;
 exports.ticker = ticker;
 exports.sendtext = sendtext;
+exports.handlePostData = handlePostData;
