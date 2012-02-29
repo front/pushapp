@@ -195,14 +195,28 @@ function handlePostData(pathname, response, request, postData) {
    console.log("jsondata"); 
    console.log(json);
    
-   var event = "new_text";
-   pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
+   console.log("pathname: " + pathname);
+   if (pathname == "/sendtext"){
+     var event = "new_text";
+     pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
+  }
+  
+  if (pathname == "/receive_postmark_data"){
+    console.log("try to send batch subject:")
+    var event = "new_text";
+    pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
   
   }
 
+
+}
+function receive_postmark_data(res,req){
+  console.log("in receive postmark data");
+}
 exports.start = start;
 exports.upload = upload;
 exports.show = show;
 exports.ticker = ticker;
 exports.sendtext = sendtext;
 exports.handlePostData = handlePostData;
+exports.receive_postmark_data = receive_postmark_data;
