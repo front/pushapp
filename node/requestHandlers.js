@@ -234,7 +234,7 @@ function handlePostData(pathname, response, request, postData) {
     var batch = {};
     
     // new_li will contain the new list element on frontend
-    batch.new_li = json.Subject;
+    batch.new_li = json2.Subject;
     console.log("batch:");
     console.log(batch);
     
