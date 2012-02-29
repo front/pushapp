@@ -205,7 +205,7 @@ function handlePostData(pathname, response, request, postData) {
   
   if (pathname == "/receive_postmark_data"){
     
-    try {
+/*    try {
       var file = json.Attachments[0].Content;
       } 
       catch(e){
@@ -220,14 +220,14 @@ function handlePostData(pathname, response, request, postData) {
     });
 
 
-    /*
+
   if (json.Attachments){
       for(var i=0; i<json.Attachments.length; i++) {
         
       }
         
 		}*()
-  
+*/  
 
     // The data dataobject that will be pushed out.
     var batch = {};
