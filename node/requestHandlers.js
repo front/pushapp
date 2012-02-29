@@ -194,8 +194,9 @@ function handlePostData(pathname, response, request, postData) {
   
   // Use querystring library to parse postdata to json
   var json = querystring.parse(postData);
-  
   console.log(json);
+  var json2 = JSON.parse(postData);
+  console.log(json2);
   
    
   if ( pathname == "/sendtext" ) {
