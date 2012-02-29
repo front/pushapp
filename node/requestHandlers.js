@@ -237,8 +237,8 @@ function handlePostData(pathname, response, request, postData) {
     
     var json_string = JSON.stringify(batch);
     
-    var event = "new_postmark_batch"
-    pusher.trigger(channel, event, json_string, socket_id, function(error, request, response) {}); */
+    var event = "new_postmark_batch";
+    pusher.trigger(channel, event, json_string, socket_id, function(error, request, response) {}); 
     response.end();
   }
 }
