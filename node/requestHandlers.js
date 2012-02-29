@@ -194,14 +194,14 @@ function handlePostData(pathname, response, request, postData) {
   
   // Use querystring library to parse postdata to json
   var json = querystring.parse(postData);
-  console.log(json);
+  //console.log(json);
   var json2 = JSON.parse(postData);
   console.log(json2);
   
    
   if ( pathname == "/sendtext" ) {
     var event = "new_text";
-    pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
+    pusher.trigger(channel, event, json2, socket_id, function(error, request, response) {});
   }
   
   if (pathname == "/receive_postmark_data"){
