@@ -49,11 +49,11 @@ function upload(response, request) {
 
 //  var form = new formidable.IncomingForm();
   //form.uploadDir = "/img";
-  console.log("about to parse:");
-  console.log( request );
+  //console.log("about to parse:");
+  //console.log( request );
   form.parse(request, function(error, fields, files) {
-    console.log( "files:");
-    console.log( files );
+    //console.log( "files:");
+    //console.log( files );
     //var old_path = files.upload.path; 
     //var new_path = "img/img1.png";
     //console.log( old_path + " ---> " + new_path);
@@ -186,42 +186,67 @@ function sendtext(res,req){
  *  This is called from server each time there is postdata attached to the request.
  *  It will always recevie the full batch of postdata.
  */ 
+function reviver(data){}
 function handlePostData(pathname, response, request, postData) {
+
   
-   var json = JSON.parse(postData);   
   
-   //console.log("postData"); 
-   //console.log(postData);
-   //console.log("jsondata"); 
-   console.log(json);
-   //console.log(parsed);
+  // Use querystring library to parse postdata to json
+  var json = querystring.parse(postData);
+  
+  console.log(json);
+  
    
-   
-   console.log("pathname: " + pathname);
-   if (pathname == "/sendtext"){
-     var event = "new_text";
-     pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
+  if ( pathname == "/sendtext" ) {
+    var event = "new_text";
+    pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
   }
   
   if (pathname == "/receive_postmark_data"){
-    console.log("try to send batch subject:")
-    var event = "new_postmark_batch";
+    
+    try {
+      var file = json.Attachments[0].Content;
+      } 
+      catch(e){
+        console.log("WARNING: Could not find attachment");
+        }
+
+    console.log("In handlepost");
+    fs.writeFile("post.png", file ,function(err){
+      if (err) 
+        console.log("error saving");
+      console.log("File saved!");
+    });
+
+
+    /*
+  if (json.Attachments){
+      for(var i=0; i<json.Attachments.length; i++) {
+        
+      }
+        
+		}*()
+  
+
+    // The data dataobject that will be pushed out.
     var batch = {};
-    batch.new_li = json.Subject
-    console.log("new_li added to batch");
-    console.log(batch);
     
+    // new_li will contain the new list element on frontend
+    batch.new_li = json.Subject;
     
-    var jsonbatch = JSON.stringify(batch);
+    var json_string = JSON.stringify(batch);
     
-    pusher.trigger(channel, event, jsonbatch, socket_id, function(error, request, response) {});
+    var event = "new_postmark_batch"
+    pusher.trigger(channel, event, json_string, socket_id, function(error, request, response) {}); */
     response.end();
   }
-
-
 }
+
+
 function receive_postmark_data(res,req){
-  console.log("in receive postmark data");
+  //console.log("in receive postmark data");
+
+  res.end();
 }
 exports.start = start;
 exports.upload = upload;
