@@ -20,7 +20,14 @@ function start(route, handle) {
   
   request.addListener("end", function() {
     if (postData)
-      require('./requestHandlers.js').handlePostData(pathname, response, request, postData);    
+      {
+      console.log("GOT POST DATA");
+      require('./requestHandlers.js').handlePostData(pathname, response, request, postData);
+      }    
+      else{
+        console.log("NO POST DATA");
+      }
+      
   });
 }
 

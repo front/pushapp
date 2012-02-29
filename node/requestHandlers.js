@@ -2,6 +2,7 @@ var querystring = require("qs"),
     fs = require("fs"),
     formidable = require("formidable"),
     Pusher = require("node-pusher");
+    //MailParser = require("mailparser").MailParser;
     //redis = require("redis");
     
     
@@ -189,7 +190,7 @@ function sendtext(res,req){
 function reviver(data){}
 function handlePostData(pathname, response, request, postData) {
 
-  
+  //var mailparser = new MailParser();
   
   // Use querystring library to parse postdata to json
   var json = querystring.parse(postData);
