@@ -192,6 +192,8 @@ function handlePostData(pathname, response, request, postData) {
    
    console.log("postData"); 
    console.log(postData);
+   console.log("jsondata"); 
+   console.log(json);
    
    var event = "new_text";
    pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
