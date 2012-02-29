@@ -124,12 +124,7 @@ function ticker(response, request){
   var event = 'new_image';
 
   pusher.trigger(channel, event, data, socket_id, function(error, request, response) {
-    //console.log( "from pusher.trigger: ");
-    //console.log(request);
-    
-    
-    //////////////////
-    
+   
    /* 
   var subscriber = redis.createClient(), publisher2 = redis.createClient(), msg_count = 0;
   subscriber.on("subscribe", function (channel, count) {
@@ -151,9 +146,7 @@ function ticker(response, request){
     subscriber.subscribe("mychannel");
   
   */
-  
-  /////////////////
-  
+    
   });
   response.end();
 }
@@ -165,10 +158,6 @@ function sendtext(res,req){
   
   if (req.method = "GET"){
 
-    console.log(" GET");
-    //console.log(res);
-    //console.log("req:");
-    //console.log(req);
     var body ='';
     body = '<html>'+
     '<head>'+
