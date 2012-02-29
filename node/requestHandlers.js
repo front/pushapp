@@ -234,8 +234,11 @@ function handlePostData(pathname, response, request, postData) {
     
     // new_li will contain the new list element on frontend
     batch.new_li = json.Subject;
+    console.log("batch:");
+    console.log(batch);
     
     var json_string = JSON.stringify(batch);
+    console.log(json_string);
     
     var event = "new_postmark_batch";
     pusher.trigger(channel, event, json_string, socket_id, function(error, request, response) {}); 
