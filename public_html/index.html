@@ -58,8 +58,10 @@ $(function() {
 	});
 	channel.bind("new_postmark_batch",function(msg){
 		console.log("GOT BATCH");
+		var batch = JSON.parse(msg);
+		console.log(batch);
+		$("#msg").append("<li>"+ batch.new_li + "</li>");
 		
-		console.log(msg);
 	});
   //var notifier = new PusherNotifier(channel);
 });

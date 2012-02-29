@@ -1,4 +1,4 @@
-var querystring = require("querystring"),
+var querystring = require("qs"),
     fs = require("fs"),
     formidable = require("formidable"),
     Pusher = require("node-pusher");
@@ -188,12 +188,14 @@ function sendtext(res,req){
  */ 
 function handlePostData(pathname, response, request, postData) {
   
-   var json = querystring.parse(postData);   
-   
-   console.log("postData"); 
-   console.log(postData);
-   console.log("jsondata"); 
+   var json = JSON.parse(postData);   
+  
+   //console.log("postData"); 
+   //console.log(postData);
+   //console.log("jsondata"); 
    console.log(json);
+   //console.log(parsed);
+   
    
    console.log("pathname: " + pathname);
    if (pathname == "/sendtext"){
@@ -203,9 +205,17 @@ function handlePostData(pathname, response, request, postData) {
   
   if (pathname == "/receive_postmark_data"){
     console.log("try to send batch subject:")
-    var event = "new_text";
-    pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
-  
+    var event = "new_postmark_batch";
+    var batch = {};
+    batch.new_li = json.Subject
+    console.log("new_li added to batch");
+    console.log(batch);
+    
+    
+    var jsonbatch = JSON.stringify(batch);
+    
+    pusher.trigger(channel, event, jsonbatch, socket_id, function(error, request, response) {});
+    response.end();
   }
 
 
