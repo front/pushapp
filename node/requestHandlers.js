@@ -4,6 +4,7 @@ var querystring = require("qs");
 var fs = require("fs");
 var Pusher = require("node-pusher");
 var redis = require("redis");
+var TwitterNode = require("twitter-node").TwitterNode;
 //var temp = require('temp');
 //var MailParser = require("mailparser").MailParser;
 
@@ -23,10 +24,31 @@ var pusher = new Pusher({
 var channel = 'messages';
 var socket_id = '1302.1081607';
 
-
+// Setup twitter
+var twit = new TwitterNode({
+   user: 'henrikakselsen', 
+   password: 'tr.ai4Dawin',
+   //host: 'my_proxy.my_company.com',         // proxy server name or ip addr
+   //port: 8080,                              // proxy port!
+   track: ['#help']         // sports!
+   //follow: [12345, 67890],                  // follow these random users
+   //locations: [-122.75, 36.8, -121.75, 37.8] // tweets in SF
+ });
  
-  
+ twit.addListener('tweet', function(tweet) {
+     console.log("New tweet: " + tweet.text);
+     saveTweet(tweet);
+   })
+   twit.addListener('error', function(error) {
+     console.log("twitter error: " + error.message);
+   });
 
+twit.stream();
+  
+  
+  function saveTweet(tweet){
+    saveToDatabase( tweet.text, tweet.user.profile_image_url);
+  }
   
 /*
  *  Helperfunction that returns 8 random characters.
@@ -35,7 +57,7 @@ function randomString() {
  	var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
  	var string_length = 8;
  	var randomstring = '';
- 	for (var i=0; i<string_length; i++) {
+ 	for (var i=0; i < string_length; i++) {
  		var rnum = Math.floor(Math.random() * chars.length);
  		randomstring += chars.substring(rnum,rnum+1);
  	}
@@ -53,9 +75,12 @@ function pushAlgorithm(){
  */
 function pushToFrontEnd(){
   var json = { test: "test"};
+  console.log("here");
+  var length = redis_client.llen("content"); 
+  console.log("length" + length);
   pusher.trigger(channel, "new_image", json, socket_id, function(error, request, response) {});
   console.log("pushed: " + JSON.stringify(json));
-  var a = redis_client.lrange( ["content", 0, 1], function(err,res){
+  var a = redis_client.lrange( ["content:image", -2, -1], function(err,res){
     if(!err){
       console.log( "Fetched from redis: " + res);
       
@@ -66,14 +91,14 @@ function pushToFrontEnd(){
    
   }
 
-
- 
-function saveToDatabase(key,value){
-  var id = redis_client.incr("id", function(err,res){
-    console.log("Now handling postdata for redis db index: " + res);
-    redis_client.rpush("content:"+res+":"+key, value);
-    console.log("Saved to redis: "+ "content:"+res+":"+key + " -> " + value);
-    
+function saveToDatabase(text,image){
+  var id = redis_client.incr( "id", function( err, res ){
+    console.log( "Now handling postdata for redis db index: " + res);
+    redis_client.rpush( "content:" + res + ":text", text, function(err,res){});
+    redis_client.rpush( "content:" + res +" :image", image, function(err,res){});
+    console.log( "Saved to redis: "+"content:" + res + ":" + "text => " + text );
+    console.log( "Saved to redis: "+"content:" + res + ":" + "image => " + image );
+     
     });
 } 
 
@@ -125,7 +150,7 @@ function handlePostData(pathname, response, request, postData) {
           
           // If successful, write filepath to redis
           //redis_client.rpush("content", fullFilePath);
-          saveToDatabase ("path",fullFilePath);
+          saveToDatabase (json.Subject,fullFilePath);
           
         } else { console.log("Error writing to file " + fullFilePath); }           
       }); //end fs.write 
