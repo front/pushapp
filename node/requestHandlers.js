@@ -1,30 +1,35 @@
-var querystring = require("qs"),
-    fs = require("fs"),
-    formidable = require("formidable"),
-    Pusher = require("node-pusher");
-    //MailParser = require("mailparser").MailParser;
+// Modules
 
+var querystring = require("qs");
+var fs = require("fs");
+var formidable = require("formidable");
+var Pusher = require("node-pusher");
 var redis = require("redis");
+//var temp = require('temp');
+//var MailParser = require("mailparser").MailParser;
+
+
+// Setup Redis
 var redis_client = redis.createClient();
+redis_client.on("error", function (err) {
+    console.log("Redis Error " + err);
+});
 
-var temp = require('temp');
-    
-    
-    
-    //var publisher = redis.createClient();
-    var pusher = new Pusher({
-          appId: '15933',
-          key: 'b060dbe058972b568c93',
-          secret: 'f5be4e8224711cb58a4b'
-        });
+// Setup Pusher    
+var pusher = new Pusher({
+  appId: '15933',
+  key: 'b060dbe058972b568c93',
+  secret: 'f5be4e8224711cb58a4b'
+});
+var channel = 'messages';
+var socket_id = '1302.1081607';
 
-        var channel = 'messages';
-    var socket_id = '1302.1081607';
-    var form = new formidable.IncomingForm();
-    
-
+// Setup formidable (not needed?)
+var form = new formidable.IncomingForm();
+ 
+  
 /*
- *  START
+ *  START (for testing only)
  */
 function start(response) {
   console.log("Request handler 'start' was called.");
@@ -47,7 +52,7 @@ function start(response) {
 }
 
 /*
- *  UPLOAD
+ *  UPLOAD (for testing only)
  */
 function upload(response, request) {
   console.log("Request handler 'upload' was called.");
@@ -63,7 +68,7 @@ function upload(response, request) {
     //var new_path = "img/img1.png";
     //console.log( old_path + " ---> " + new_path);
     
-/*
+   /*
     fs.readFile(old_path, function (err, data) {
       console.log("err1" + err);
       fs.writeFile(new_path, data, function (err) {
@@ -93,9 +98,8 @@ function upload(response, request) {
 }
 
 /*
- *  SHOW
+ *  SHOW (for testing only)
  */
-
 function show(response) {
   console.log("Request handler 'show' was called.");
   fs.readFile("/tmp/test.png", "binary", function(error, file) {
@@ -111,10 +115,8 @@ function show(response) {
   });
 }
 
-
-
 /*
- *  TICKER
+ *  TICKER (for testing only)
  */
 function ticker(response, request){
 
@@ -157,44 +159,12 @@ function ticker(response, request){
 }
 
 /*
-* TEXTSEND
-*/
+ * TEXTSEND (for testing only)
+ */
 function sendtext(res,req){
   
-  if (req.method = "GET"){
-
-    var body ='';
-    body = '<html>'+
-    '<head>'+
-    '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'+
-    '</head>'+
-    '<body>'+
-    '<form action="/sendtext"  method="POST">'+
-    '<input type="text" name="sendtext">'+
-    '<input type="submit" value="sendtext" />' +
-    '</form>'+
-    '</body>'+
-    '</html>';
-
-    res.writeHead(200, { "Content-Type": "text/html" });
-    res.write(body);
-    res.method = "POST";
-    res.end();
-
-  }
-  else{ console.log("Error, was expecting GET data"); } 
-}
-
 /*
- *  handlePostData
- *
- *  This is called from server each time there is postdata attached to the request.
- *  It will always recevie the full batch of postdata.
- */ 
- 
- 
- /*
- *  Function that returns 8 random characters.
+ *  Helperfunction that returns 8 random characters.
  */
 function randomString() {
  	var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
@@ -207,21 +177,26 @@ function randomString() {
  	return randomstring;
 }
 
+/*
+* Helperfunction to push data to pusher
+*/
 function pushToFrontEnd( event, json){
   pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
   
 }
 
-
+/*
+ *  handlePostData
+ *
+ *  This is called from server each time there is postdata attached to the request.
+ *  It will always recevie the full batch of postdata. TODO: Break this up into smaller pieces
+ */
 function handlePostData(pathname, response, request, postData) {
-
+ 
   response.on("end", function(){
     console.log("this is the end");
     var json = JSON.parse(postData);    
   })
-  
-  
-  
   
   var json = JSON.parse(postData);
    
@@ -232,55 +207,49 @@ function handlePostData(pathname, response, request, postData) {
   
   if (pathname == "/receive_postmark_data"){
     
-    var fileContent = json.Attachments[0].Content;
-    fileContent = decode64(fileContent);
-    var fileName = json.Attachments[0].Name;
-    var fullFilePath = __dirname + "/images/" + randomString() + fileName;
-    console.log("fullfilepath:" + fullFilePath);
+    
+    var batch = {};
+    
+    //Grab Subject if it exists
+    if (json.Subject){
+      var mailSubject = json.Subject;
+      redis_client.rpush("content", mailSubject);
+      batch.new_subject = mailSubject;
+      console.log("Subject: " + mailSubject);
+    } 
+    else { console.log("WARNING No subject") }
     
     
-    // Write image to file
-    try {
-      
-      fs.writeFile( fullFilePath, fileContent, function(err){
+    // Grab the first attachment if it exists
+    if (json.Attachments[0]) {
+      var fileContent = json.Attachments[0].Content;
+      var decodedFileContent = new Buffer(fileContent, 'base64').toString('ascii');
+    
+      // Create full path for the file to be created. Add 8 random characters in beginning of filename to avoid duplicate names.
+      var fileName = json.Attachments[0].Name;
+      var fullFilePath = __dirname + "/images/" + randomString() + fileName;
+    
+      // Write attachment to file
+      fs.writeFile( fullFilePath, decodedFileContent, function(err){
         if (!err) {
           console.log( "File saved: " + fullFilePath );
           
-          // TODO: if successful, write filepath to redis
-          redis_client.on("error", function (err) {
-              console.log("Redis Error " + err);
-          });
-          redis_client.rpush("images", fullFilePath);
+          // If successful, write filepath to redis
+          redis_client.rpush("content", fullFilePath);
           
-          
-          
-          // Push batch to server
-          var batch = {};
+          // Push batch to server with event new_image.
           batch.new_img = fullFilePath;
-          var json = JSON.stringify(batch);
-          pushToFrontEnd ("new_image", json);
-        }  else { 
-          console.log(" Error saving file: " + err );
-          }   
-      });
-      
-      
-      
-      
-    } 
-      catch(e){console.log("WARNING: Error when saving. No attachment?");}
-
-
-/*
-  if (json.Attachments){
-      for(var i=0; i<json.Attachments.length; i++) {
-        
-      }
-        
-		}()
-*/
-    response.end();
-  }
+        } else {console.log("Error writing to file " + fullFilePath);}           
+      }); //end fs.write 
+          
+      var json = JSON.stringify(batch);
+      pushToFrontEnd ("new_image", json);
+      } 
+    else { console.log(" WARNING No attachment: "); }
+    
+  }  
+  
+  response.end();
 }
 
 
@@ -289,55 +258,6 @@ function receive_postmark_data(res,req){
 
   res.end();
 }
-
-function decode64(input) {
-  
-  var keyStr = "ABCDEFGHIJKLMNOP" +
-               "QRSTUVWXYZabcdef" +
-               "ghijklmnopqrstuv" +
-               "wxyz0123456789+/" +
-               "=";
-  
-     var output = "";
-     var chr1, chr2, chr3 = "";
-     var enc1, enc2, enc3, enc4 = "";
-     var i = 0;
-
-     // remove all characters that are not A-Z, a-z, 0-9, +, /, or =
-     var base64test = /[^A-Za-z0-9\+\/\=]/g;
-     if (base64test.exec(input)) {
-        alert("There were invalid base64 characters in the input text.\n" +
-              "Valid base64 characters are A-Z, a-z, 0-9, ´+´, ´/´, and ´=´\n" +
-              "Expect errors in decoding.");
-     }
-     input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
-
-     do {
-        enc1 = keyStr.indexOf(input.charAt(i++));
-        enc2 = keyStr.indexOf(input.charAt(i++));
-        enc3 = keyStr.indexOf(input.charAt(i++));
-        enc4 = keyStr.indexOf(input.charAt(i++));
-
-        chr1 = (enc1 << 2) | (enc2 >> 4);
-        chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
-        chr3 = ((enc3 & 3) << 6) | enc4;
-
-        output = output + String.fromCharCode(chr1);
-
-        if (enc3 != 64) {
-           output = output + String.fromCharCode(chr2);
-        }
-        if (enc4 != 64) {
-           output = output + String.fromCharCode(chr3);
-        }
-
-        chr1 = chr2 = chr3 = "";
-        enc1 = enc2 = enc3 = enc4 = "";
-
-     } while (i < input.length);
-
-     return output;
-  }
 
 exports.start = start;
 exports.upload = upload;
