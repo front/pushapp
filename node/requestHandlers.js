@@ -3,7 +3,11 @@ var querystring = require("qs"),
     formidable = require("formidable"),
     Pusher = require("node-pusher");
     //MailParser = require("mailparser").MailParser;
-    //redis = require("redis");
+
+var redis = require("redis");
+var redis_client = redis.createClient();
+
+var temp = require('temp');
     
     
     
@@ -187,62 +191,94 @@ function sendtext(res,req){
  *  This is called from server each time there is postdata attached to the request.
  *  It will always recevie the full batch of postdata.
  */ 
-function reviver(data){}
+ 
+ 
+ /*
+ *  Function that returns 8 random characters.
+ */
+function randomString() {
+ 	var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+ 	var string_length = 8;
+ 	var randomstring = '';
+ 	for (var i=0; i<string_length; i++) {
+ 		var rnum = Math.floor(Math.random() * chars.length);
+ 		randomstring += chars.substring(rnum,rnum+1);
+ 	}
+ 	return randomstring;
+}
+
+function pushToFrontEnd( event, json){
+  pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
+  
+}
+
+
 function handlePostData(pathname, response, request, postData) {
 
-  //var mailparser = new MailParser();
+  response.on("end", function(){
+    console.log("this is the end");
+    var json = JSON.parse(postData);    
+  })
   
-  // Use querystring library to parse postdata to json
-  var json = querystring.parse(postData);
-  //console.log(json);
-  var json2 = JSON.parse(postData);
-  console.log(json2);
   
+  
+  
+  var json = JSON.parse(postData);
    
   if ( pathname == "/sendtext" ) {
-    var event = "new_text";
-    pusher.trigger(channel, event, json2, socket_id, function(error, request, response) {});
+      pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
   }
+  
   
   if (pathname == "/receive_postmark_data"){
     
-/*    try {
-      var file = json.Attachments[0].Content;
-      } 
-      catch(e){
-        console.log("WARNING: Could not find attachment");
-        }
+    var fileContent = json.Attachments[0].Content;
+    fileContent = decode64(fileContent);
+    var fileName = json.Attachments[0].Name;
+    var fullFilePath = __dirname + "/images/" + randomString() + fileName;
+    console.log("fullfilepath:" + fullFilePath);
+    
+    
+    // Write image to file
+    try {
+      
+      fs.writeFile( fullFilePath, fileContent, function(err){
+        if (!err) {
+          console.log( "File saved: " + fullFilePath );
+          
+          // TODO: if successful, write filepath to redis
+          redis_client.on("error", function (err) {
+              console.log("Redis Error " + err);
+          });
+          redis_client.rpush("images", fullFilePath);
+          
+          
+          
+          // Push batch to server
+          var batch = {};
+          batch.new_img = fullFilePath;
+          var json = JSON.stringify(batch);
+          pushToFrontEnd ("new_image", json);
+        }  else { 
+          console.log(" Error saving file: " + err );
+          }   
+      });
+      
+      
+      
+      
+    } 
+      catch(e){console.log("WARNING: Error when saving. No attachment?");}
 
-    console.log("In handlepost");
-    fs.writeFile("post.png", file ,function(err){
-      if (err) 
-        console.log("error saving");
-      console.log("File saved!");
-    });
 
-
-
+/*
   if (json.Attachments){
       for(var i=0; i<json.Attachments.length; i++) {
         
       }
         
-		}*()
-*/  
-
-    // The data dataobject that will be pushed out.
-    var batch = {};
-    
-    // new_li will contain the new list element on frontend
-    batch.new_li = json2.Subject;
-    console.log("batch:");
-    console.log(batch);
-    
-    var json_string = JSON.stringify(batch);
-    console.log(json_string);
-    
-    var event = "new_postmark_batch";
-    pusher.trigger(channel, event, json_string, socket_id, function(error, request, response) {}); 
+		}()
+*/
     response.end();
   }
 }
@@ -253,6 +289,56 @@ function receive_postmark_data(res,req){
 
   res.end();
 }
+
+function decode64(input) {
+  
+  var keyStr = "ABCDEFGHIJKLMNOP" +
+               "QRSTUVWXYZabcdef" +
+               "ghijklmnopqrstuv" +
+               "wxyz0123456789+/" +
+               "=";
+  
+     var output = "";
+     var chr1, chr2, chr3 = "";
+     var enc1, enc2, enc3, enc4 = "";
+     var i = 0;
+
+     // remove all characters that are not A-Z, a-z, 0-9, +, /, or =
+     var base64test = /[^A-Za-z0-9\+\/\=]/g;
+     if (base64test.exec(input)) {
+        alert("There were invalid base64 characters in the input text.\n" +
+              "Valid base64 characters are A-Z, a-z, 0-9, ´+´, ´/´, and ´=´\n" +
+              "Expect errors in decoding.");
+     }
+     input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+
+     do {
+        enc1 = keyStr.indexOf(input.charAt(i++));
+        enc2 = keyStr.indexOf(input.charAt(i++));
+        enc3 = keyStr.indexOf(input.charAt(i++));
+        enc4 = keyStr.indexOf(input.charAt(i++));
+
+        chr1 = (enc1 << 2) | (enc2 >> 4);
+        chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+        chr3 = ((enc3 & 3) << 6) | enc4;
+
+        output = output + String.fromCharCode(chr1);
+
+        if (enc3 != 64) {
+           output = output + String.fromCharCode(chr2);
+        }
+        if (enc4 != 64) {
+           output = output + String.fromCharCode(chr3);
+        }
+
+        chr1 = chr2 = chr3 = "";
+        enc1 = enc2 = enc3 = enc4 = "";
+
+     } while (i < input.length);
+
+     return output;
+  }
+
 exports.start = start;
 exports.upload = upload;
 exports.show = show;
