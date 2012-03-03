@@ -18,11 +18,11 @@ daemonize yes
 
 # When running daemonized, Redis writes a pid file in /var/run/redis.pid by
 # default. You can specify a custom pid file location here.
-pidfile /var/run/redis.pid
+pidfile $PIDFILE
 
 # Accept connections on the specified port, default is 6379.
 # If port 0 is specified Redis will not listen on a TCP socket.
-port 7000
+port $REDIS_PORT
 
 # If you want you can bind a single interface, if the bind option is not
 # specified all the interfaces will listen for incoming connections.
@@ -34,10 +34,9 @@ port 7000
 # on a unix socket when not specified.
 #
 # unixsocket /tmp/redis.sock
-# unixsocketperm 755
 
 # Close the connection after a client is idle for N seconds (0 to disable)
-timeout 0
+timeout 300
 
 # Set server verbosity to 'debug'
 # it can be one of:
@@ -50,7 +49,7 @@ loglevel verbose
 # Specify the log file name. Also 'stdout' can be used to force
 # Redis to log on the standard output. Note that if you use standard
 # output for logging but daemonize, logs will be sent to /dev/null
-logfile stdout
+logfile $REDIS_LOG_FILE
 
 # To enable logging to the system logger, just set 'syslog-enabled' to yes,
 # and optionally update the other syslog parameters to suit your needs.
@@ -104,7 +103,7 @@ dbfilename dump.rdb
 # Also the Append Only File will be created inside this directory.
 # 
 # Note that you must specify a directory here, not a file name.
-dir ./
+dir $REDIS_DATA_DIR
 
 ################################# REPLICATION #################################
 
@@ -134,21 +133,6 @@ dir ./
 #    but to INFO and SLAVEOF.
 #
 slave-serve-stale-data yes
-
-# Slaves send PINGs to server in a predefined interval. It's possible to change
-# this interval with the repl_ping_slave_period option. The default value is 10
-# seconds.
-#
-# repl-ping-slave-period 10
-
-# The following option sets a timeout for both Bulk transfer I/O timeout and
-# master data or ping response timeout. The default value is 60 seconds.
-#
-# It is important to make sure that this value is greater than the value
-# specified for repl-ping-slave-period otherwise a timeout will be detected
-# every time there is low traffic between the master and the slave.
-#
-# repl-timeout 60
 
 ################################## SECURITY ###################################
 
@@ -192,27 +176,21 @@ slave-serve-stale-data yes
 # maxclients 128
 
 # Don't use more memory than the specified amount of bytes.
-# When the memory limit is reached Redis will try to remove keys
-# accordingly to the eviction policy selected (see maxmemmory-policy).
+# When the memory limit is reached Redis will try to remove keys with an
+# EXPIRE set. It will try to start freeing keys that are going to expire
+# in little time and preserve keys with a longer time to live.
+# Redis will also try to remove objects from free lists if possible.
 #
-# If Redis can't remove keys according to the policy, or if the policy is
-# set to 'noeviction', Redis will start to reply with errors to commands
-# that would use more memory, like SET, LPUSH, and so on, and will continue
-# to reply to read-only commands like GET.
+# If all this fails, Redis will start to reply with errors to commands
+# that will use more memory, like SET, LPUSH, and so on, and will continue
+# to reply to most read-only commands like GET.
 #
-# This option is usually useful when using Redis as an LRU cache, or to set
-# an hard memory limit for an instance (using the 'noeviction' policy).
-#
-# WARNING: If you have slaves attached to an instance with maxmemory on,
-# the size of the output buffers needed to feed the slaves are subtracted
-# from the used memory count, so that network problems / resyncs will
-# not trigger a loop where keys are evicted, and in turn the output
-# buffer of slaves is full with DELs of keys evicted triggering the deletion
-# of more keys, and so forth until the database is completely emptied.
-#
-# In short... if you have slaves attached it is suggested that you set a lower
-# limit for maxmemory so that there is some free RAM on the system for slave
-# output buffers (but this is not needed if the policy is 'noeviction').
+# WARNING: maxmemory can be a good idea mainly if you want to use Redis as a
+# 'state' server or cache, not as a real DB. When Redis is used as a real
+# database the memory usage will grow over the weeks, it will be obvious if
+# it is going to use too much memory in the long run, and you'll have the time
+# to upgrade. With maxmemory after the limit is reached you'll start to get
+# errors for write operations, and this may even lead to DB inconsistency.
 #
 # maxmemory <bytes>
 
@@ -334,6 +312,13 @@ no-appendfsync-on-rewrite no
 auto-aof-rewrite-percentage 100
 auto-aof-rewrite-min-size 64mb
 
+################################ LUA SCRIPTING  ###############################
+
+# Max execution time of a Lua script in milliseconds.
+# This prevents that a programming error generating an infinite loop will block
+# your server forever. Set it to 0 or a negative value for unlimited execution.
+#lua-time-limit 60000
+
 ################################## SLOW LOG ###################################
 
 # The Redis Slow Log is a system to log queries that exceeded a specified
@@ -357,81 +342,6 @@ slowlog-log-slower-than 10000
 # There is no limit to this length. Just be aware that it will consume memory.
 # You can reclaim memory used by the slow log with SLOWLOG RESET.
 slowlog-max-len 1024
-
-################################ VIRTUAL MEMORY ###############################
-
-### WARNING! Virtual Memory is deprecated in Redis 2.4
-### The use of Virtual Memory is strongly discouraged.
-
-# Virtual Memory allows Redis to work with datasets bigger than the actual
-# amount of RAM needed to hold the whole dataset in memory.
-# In order to do so very used keys are taken in memory while the other keys
-# are swapped into a swap file, similarly to what operating systems do
-# with memory pages.
-#
-# To enable VM just set 'vm-enabled' to yes, and set the following three
-# VM parameters accordingly to your needs.
-
-vm-enabled no
-# vm-enabled yes
-
-# This is the path of the Redis swap file. As you can guess, swap files
-# can't be shared by different Redis instances, so make sure to use a swap
-# file for every redis process you are running. Redis will complain if the
-# swap file is already in use.
-#
-# The best kind of storage for the Redis swap file (that's accessed at random) 
-# is a Solid State Disk (SSD).
-#
-# *** WARNING *** if you are using a shared hosting the default of putting
-# the swap file under /tmp is not secure. Create a dir with access granted
-# only to Redis user and configure Redis to create the swap file there.
-vm-swap-file /tmp/redis.swap
-
-# vm-max-memory configures the VM to use at max the specified amount of
-# RAM. Everything that deos not fit will be swapped on disk *if* possible, that
-# is, if there is still enough contiguous space in the swap file.
-#
-# With vm-max-memory 0 the system will swap everything it can. Not a good
-# default, just specify the max amount of RAM you can in bytes, but it's
-# better to leave some margin. For instance specify an amount of RAM
-# that's more or less between 60 and 80% of your free RAM.
-vm-max-memory 0
-
-# Redis swap files is split into pages. An object can be saved using multiple
-# contiguous pages, but pages can't be shared between different objects.
-# So if your page is too big, small objects swapped out on disk will waste
-# a lot of space. If you page is too small, there is less space in the swap
-# file (assuming you configured the same number of total swap file pages).
-#
-# If you use a lot of small objects, use a page size of 64 or 32 bytes.
-# If you use a lot of big objects, use a bigger page size.
-# If unsure, use the default :)
-vm-page-size 32
-
-# Number of total memory pages in the swap file.
-# Given that the page table (a bitmap of free/used pages) is taken in memory,
-# every 8 pages on disk will consume 1 byte of RAM.
-#
-# The total swap size is vm-page-size * vm-pages
-#
-# With the default of 32-bytes memory pages and 134217728 pages Redis will
-# use a 4 GB swap file, that will use 16 MB of RAM for the page table.
-#
-# It's better to use the smallest acceptable value for your application,
-# but the default is large in order to work in most conditions.
-vm-pages 134217728
-
-# Max number of VM I/O threads running at the same time.
-# This threads are used to read/write data from/to swap file, since they
-# also encode and decode objects from disk to memory or the reverse, a bigger
-# number of threads can help with big objects even if they can't help with
-# I/O itself as the physical device may not be able to couple with many
-# reads/writes operations at the same time.
-#
-# The special value of 0 turn off threaded I/O and enables the blocking
-# Virtual Memory implementation.
-vm-max-threads 4
 
 ############################### ADVANCED CONFIG ###############################
 
