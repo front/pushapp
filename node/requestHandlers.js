@@ -5,6 +5,10 @@ var fs = require("fs");
 var Pusher = require("node-pusher");
 var redis = require("redis");
 var TwitterNode = require("twitter-node").TwitterNode;
+var PriorityQueue = require("Priority-Queue-NodeJS");
+
+var priorityQueue = new PriorityQueue();
+
 //var temp = require('temp');
 //var MailParser = require("mailparser").MailParser;
 
@@ -77,22 +81,21 @@ function pushAlgorithm(){
  */
 function pushToFrontEnd(){
   
-  //var length = redis_client.llen("content"); 
-  console.log(last_saved);
+    
+  var nextInLine = priorityQueue.top();
+  //var nextInLinepri = priorityQuey.top();
+  console.log("nextInLine: " + nextInLine + " (Total number in queue: "+priorityQueue.size()+")");
   
-  
-  console.log("pushed new message to frontend");
-  
-  var a = redis_client.hgetall( "content:"+last_saved, function(err,res){
+  var a = redis_client.hgetall( "content:"+nextInLine, function(err,res){
     if(!err){
-      console.log( "Fetched from redis: ");
-      console.log( "here: " + res.text );
       
+      priorityQueue.push(nextInLine,50 );
       var json = { text: res.text, image: res.image};
-      
       json = JSON.stringify(json);
       
       pusher.trigger(channel, "new_message", json, socket_id, function(error, request, response) {});
+      
+      
       
       
     }
@@ -108,6 +111,7 @@ function saveToDatabase(text,image){
     if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, function(err,res){
       if(!err)console.log( "Saving to redis -> content:" + index, "   text: "+text+"    image: "+ image);
       last_saved = index;
+      priorityQueue.push( last_saved, 100);
       
     });
     
