@@ -39,12 +39,34 @@
 
 
 <link rel="stylesheet" type="text/css" href="css/style.css" />
+<style>
+	ul {
+		list-style: none;
+		padding: 0;
+		margin: 0 auto;
+		width: 30em;
+		height: 20em;
+	}
+	li {
+		height: 10em;
+		width: 10em;
+		margin-top: 200px;
+		text-align: center;
+		cursor: pointer;
+	}
+		li img {
+			width: 100%;
+		}
+		li.roundabout-in-focus {
+			cursor: default;
+		}
+	span {
+		display: block;
+		padding-top: 6em;
+	}
+</style>
+
 <script type="text/javascript">
-
-
-
-
-
 $(function() {
   var pusher = new Pusher('b060dbe058972b568c93');
 
@@ -58,47 +80,49 @@ $(function() {
 
 	// Abbonnerer pÃ¥ kanalen messages, og ved hver event new_message endres skjerm ved jquery kall	
   var channel = pusher.subscribe('messages');
-	channel.bind('new_text', function(msg){
-		console.log(msg);
-		$("#image_ul").append("<li>"+msg.sendtext+"</li>");
-	});
-	channel.bind('new_image', function(msg){
-		console.log(msg);
-		$("body").append("<img src='"+msg.content+"'></img>");
-	});
-	channel.bind("new_postmark_batch",function(msg){
+	var count = 0 ;
+	channel.bind("new_message",function(json){
+		//alert(count % 5);
 		console.log("GOT BATCH");
-		var batch = JSON.parse(msg);
-		console.log(batch);
-		$("#image_ul").append("<li>"+ batch.new_li + "</li>");
+		var json = JSON.parse(json);
+		console.log(json);
+		
+		
+		var selector = "li#"+count % 5 +" img";
+		//alert (selector);
+		
+		$(selector).attr( "src" , json.image );
+		$("h1#header").text(json.text);
+		count++;
+		$("ul").roundabout("animateToNextChild")
+		
 	});
 	$(document).ready(function() {
 		$('ul').roundabout({
 			minOpacity: 0.0,
 			shape: 'lazySusan',
-			autoplay:true,
-			autoplayDuration:5000
+			//autoplay:true,
+			//autoplayDuration:5000
 		});
 	});
   //var notifier = new PusherNotifier(channel);
 });
-
-
 </script>
-
-
 </head>
+
+
+
 <body>
 <div class="wrapper">
-  <!-- <h1>I can haz realtime?</h1> -->
+   <h1 id="header">I can haz realtime?</h1> >
 	<section>
 		<ul id="image_ul">
     			  <!-- li><img src="http://theawesomer.com/photos/2011/02/021711_business_cat_meme_2.jpg" /></li -->
+			<li id="4"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
+			<li id="0"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
 			<li id="1"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
 			<li id="2"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
 			<li id="3"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
-			<li id="4"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
-			<li id="5"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
     </ul>
 	</section>
 	<section class="connection">

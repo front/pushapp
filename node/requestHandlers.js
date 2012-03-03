@@ -8,6 +8,8 @@ var TwitterNode = require("twitter-node").TwitterNode;
 //var temp = require('temp');
 //var MailParser = require("mailparser").MailParser;
 
+// UGLY: global variable. Because of redis datastructure I see no other way...
+var last_saved = 0;
 
 // Setup Redis
 var redis_client = redis.createClient();
@@ -67,7 +69,7 @@ function randomString() {
 pushAlgorithm();
 
 function pushAlgorithm(){
-  setTimeout(pushToFrontEnd, 500);
+  setInterval(pushToFrontEnd, 10000);
 }
 
 /*
@@ -76,17 +78,21 @@ function pushAlgorithm(){
 function pushToFrontEnd(){
   
   //var length = redis_client.llen("content"); 
+  console.log(last_saved);
   
   
   console.log("pushed new message to frontend");
   
-  var a = redis_client.lrange( ["content:image", -2, -1], function(err,res){
+  var a = redis_client.hgetall( "content:"+last_saved, function(err,res){
     if(!err){
       console.log( "Fetched from redis: ");
-      console.log(res);
+      console.log( "here: " + res.text );
       
+      var json = { text: res.text, image: res.image};
       
-      //pusher.trigger(channel, "new_image", json, socket_id, function(error, request, response) {});
+      json = JSON.stringify(json);
+      
+      pusher.trigger(channel, "new_message", json, socket_id, function(error, request, response) {});
       
       
     }
@@ -97,13 +103,14 @@ function pushToFrontEnd(){
   }
 
 function saveToDatabase(text,image){
-  var id = redis_client.incr( "id", function( err, res ){
-    console.log( "Now handling postdata for redis db index: " + res);
-    //redis_client.rpush( "content:" + res + ":text", text, function(err,res){});
-    //redis_client.rpush( "content:" + res +" :image", image, function(err,res){});
-    redis_client.hmset( "content", "index", "1", "text", "mytext", "image", "/path", function(err,res){});
+  var id = redis_client.incr( "id", function( err, index ){
+
+    if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, function(err,res){
+      if(!err)console.log( "Saving to redis -> content:" + index, "   text: "+text+"    image: "+ image);
+      last_saved = index;
+      
+    });
     
-    console.log( "index: "+res+",   text: "+text+"    image: "+ image);
      
     }); 
 } 
