@@ -74,15 +74,20 @@ function pushAlgorithm(){
  * Helperfunction to push data to pusher
  */
 function pushToFrontEnd(){
-  var json = { test: "test"};
-  console.log("here");
-  var length = redis_client.llen("content"); 
-  console.log("length" + length);
-  pusher.trigger(channel, "new_image", json, socket_id, function(error, request, response) {});
-  console.log("pushed: " + JSON.stringify(json));
+  
+  //var length = redis_client.llen("content"); 
+  
+  
+  console.log("pushed new message to frontend");
+  
   var a = redis_client.lrange( ["content:image", -2, -1], function(err,res){
     if(!err){
-      console.log( "Fetched from redis: " + res);
+      console.log( "Fetched from redis: ");
+      console.log(res);
+      
+      
+      //pusher.trigger(channel, "new_image", json, socket_id, function(error, request, response) {});
+      
       
     }
     else console.log("WARNING no elements fetched from redis db: " + err);
@@ -94,12 +99,13 @@ function pushToFrontEnd(){
 function saveToDatabase(text,image){
   var id = redis_client.incr( "id", function( err, res ){
     console.log( "Now handling postdata for redis db index: " + res);
-    redis_client.rpush( "content:" + res + ":text", text, function(err,res){});
-    redis_client.rpush( "content:" + res +" :image", image, function(err,res){});
-    console.log( "Saved to redis: "+"content:" + res + ":" + "text => " + text );
-    console.log( "Saved to redis: "+"content:" + res + ":" + "image => " + image );
+    //redis_client.rpush( "content:" + res + ":text", text, function(err,res){});
+    //redis_client.rpush( "content:" + res +" :image", image, function(err,res){});
+    redis_client.hmset( "content", "index", "1", "text", "mytext", "image", "/path", function(err,res){});
+    
+    console.log( "index: "+res+",   text: "+text+"    image: "+ image);
      
-    });
+    }); 
 } 
 
 
