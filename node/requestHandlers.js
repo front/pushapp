@@ -49,7 +49,7 @@ twit.stream();
   
   
   function saveTweet(tweet){
-    saveToDatabase( tweet.text, tweet.user.profile_image_url);
+    saveToDatabase( tweet.text, "http://api.twitter.com/1/users/profile_image?screen_name="+tweet.user.screen_name+"&size=bigger");
   }
   
 /*
