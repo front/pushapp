@@ -1,0 +1,6 @@
+node/.DS_Store
+node/demo.txt
+node/images
+.DS_Store
+node/$REDIS_LOG_FILE
+node/node_modules/.DS_Store
