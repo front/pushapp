@@ -73,52 +73,68 @@ function randomString() {
 pushAlgorithm();
 
 function pushAlgorithm(){
-  setInterval(pushToFrontEnd, 10000);
+  setInterval(pushToFrontEnd, 3000);
 }
 
 /*
- * Helperfunction to push data to pusher
+ * Gets the most prioritized item and push it
  */
 function pushToFrontEnd(){
   
-    
+  //Change to pop later
   var nextInLine = priorityQueue.top();
-  //var nextInLinepri = priorityQuey.top();
-  console.log("nextInLine: " + nextInLine + " (Total number in queue: "+priorityQueue.size()+")");
+  //var timesShown = hgetA
+  console.log("nextInLine: " + nextInLine );
   
-  var a = redis_client.hgetall( "content:"+nextInLine, function(err,res){
-    if(!err){
+  // Get the currently most prioritized hash
+  var query = redis_client.hgetall( "content:" + nextInLine, function(err,res) {
+    if(!err) {
+      var timesShown = res.shown;
+      //console.log("timesShown = " +  res.timeAdded);
+      var timesShownNeg = - timesShown;
+      var timeAdded = res.timeAdded;
+      var hoursSinceAdded = 0.1;
       
-      priorityQueue.push(nextInLine,50 );
+      console.log( "timesShown=" +  timesShown + " timeAdded=" + timeAdded + "image:" + res.image);
+      
+      // Push
       var json = { text: res.text, image: res.image};
       json = JSON.stringify(json);
+      pusher.trigger(channel, "new_message", json, socket_id, function(error, request, response) {
+        if(!err) {console.log("successfully pushed")}
+        else {console.log("error while pushing");}
+        
+      });
       
-      pusher.trigger(channel, "new_message", json, socket_id, function(error, request, response) {});
+      // calculate new priority
+      var newPri = timesShownNeg/hoursSinceAdded;
+      var newPri = Math.pow( newPri, 1.5 );
+      //console.log("timesShownNeg:" + timesShownNeg + " | hoursSinceAdded: " + hoursSinceAdded +  " | newPri: " +newPri);
       
-      
-      
+      // TODO Push the nextInLine back in the queue with lower pri
+      priorityQueue.push(nextInLine,newPri );
       
     }
+    
     else console.log("WARNING no elements fetched from redis db: " + err);
   });
-
-   
-  }
-
+ 
+}
+  
 function saveToDatabase(text,image){
   var id = redis_client.incr( "id", function( err, index ){
-
-    if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, function(err,res){
-      if(!err)console.log( "Saving to redis -> content:" + index, "   text: "+text+"    image: "+ image);
+    var d = new Date().getTime();
+    //console.log("DATE: " + d);
+    if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, "timeAdded", d, "shown", "0123",  function(err,res){
+      if(!err)console.log( "Saving to redis -> content:" + index);
       last_saved = index;
+    
       priorityQueue.push( last_saved, 100);
       
     });
     
-     
     }); 
 } 
-
 
 /*
  *  handlePostData
@@ -127,7 +143,6 @@ function saveToDatabase(text,image){
  *  It will always recevie the full batch of postdata. TODO: Break this up into smaller pieces
  */ 
 function handlePostData(pathname, response, request, postData) {
- 
 
   response.on("end", function(){
     console.log("this is the end");
