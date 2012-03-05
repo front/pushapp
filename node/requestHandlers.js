@@ -1,5 +1,7 @@
-// Modules
+var TWITTER_SEARCH_TERM = "#help";
+var TIME_TO_STAY_ON_SCREEN = 1000; // in milliseconds
 
+// Modules
 var querystring = require("qs");
 var fs = require("fs");
 var Pusher = require("node-pusher");
@@ -14,6 +16,7 @@ var priorityQueue = new PriorityQueue();
 
 // UGLY: global variable. Because of redis datastructure I see no other way...
 var last_saved = 0;
+var last_shown = 0;
 
 // Setup Redis
 var redis_client = redis.createClient();
@@ -36,13 +39,13 @@ var twit = new TwitterNode({
    password: 'tr.ai4Dawin',
    //host: 'my_proxy.my_company.com',         // proxy server name or ip addr
    //port: 8080,                              // proxy port!
-   track: ['#help']         // sports!
+   track: [ TWITTER_SEARCH_TERM ]         // sports!
    //follow: [12345, 67890],                  // follow these random users
    //locations: [-122.75, 36.8, -121.75, 37.8] // tweets in SF
  });
  
  twit.addListener('tweet', function(tweet) {
-     console.log("New tweet: " + tweet.text);
+     //console.log("New tweet: " + tweet.text);
      saveTweet(tweet);
    })
    twit.addListener('error', function(error) {
@@ -73,43 +76,73 @@ function randomString() {
 pushAlgorithm();
 
 function pushAlgorithm(){
-  setInterval(pushToFrontEnd, 3000);
+  setInterval(pushToFrontEnd, TIME_TO_STAY_ON_SCREEN);
 }
 
 /*
  * Gets the most prioritized item and push it
  */
+ 
+var pow = function(x, n) {
+ 	if(n < 0){
+ 		return 0;
+ 	}
+
+ 	if(n === 0){
+ 		return 1;
+ 	}
+ 	var temp = pow(x, Math.floor(n/2));
+ 	if(n % 2 === 0){
+ 		return temp * temp;
+ 	}
+ 	else{
+ 		return temp * temp * x;
+ 	}
+ };
+
 function pushToFrontEnd(){
   
   //Change to pop later
-  var nextInLine = priorityQueue.top();
+  var nextInLine = priorityQueue.pop();
   //var timesShown = hgetA
-  console.log("nextInLine: " + nextInLine );
+  //console.log("nextInLine: " + nextInLine );
   
   // Get the currently most prioritized hash
   var query = redis_client.hgetall( "content:" + nextInLine, function(err,res) {
     if(!err) {
-      var timesShown = res.shown;
+      var now = new Date().getTime();
+      var timesShown = res.timesShown;
       //console.log("timesShown = " +  res.timeAdded);
-      var timesShownNeg = - timesShown;
+      var timesShownNeg = timesShown * -1;
       var timeAdded = res.timeAdded;
-      var hoursSinceAdded = 0.1;
+      var hoursSinceAdded = (now - timeAdded)/(1000*60*60);
       
-      console.log( "timesShown=" +  timesShown + " timeAdded=" + timeAdded + "image:" + res.image);
+      //console.log( "timesShown=" +  timesShown + " | timeAdded=" + timeAdded);
       
       // Push
       var json = { text: res.text, image: res.image};
       json = JSON.stringify(json);
       pusher.trigger(channel, "new_message", json, socket_id, function(error, request, response) {
-        if(!err) {console.log("successfully pushed")}
+        if(!err) {
+          //console.log("successfully pushed")
+          }
         else {console.log("error while pushing");}
         
       });
       
+      
+
+      
+      
       // calculate new priority
-      var newPri = timesShownNeg/hoursSinceAdded;
-      var newPri = Math.pow( newPri, 1.5 );
-      //console.log("timesShownNeg:" + timesShownNeg + " | hoursSinceAdded: " + hoursSinceAdded +  " | newPri: " +newPri);
+      var newPri = (timesShownNeg-1)/(hoursSinceAdded+2);
+      //console.log("newpri " + newPri);
+      var newPri = pow( newPri, 1.5 );
+      console.log("For item "+nextInLine+" -> timesShown:" + timesShown +  " | newPri: " + newPri + " | hoursSinceAdded: " + hoursSinceAdded );
+      
+      // Increase times shown
+      timesShown++;
+      redis_client.hset( "content:" + nextInLine, "timesShown", timesShown );
       
       // TODO Push the nextInLine back in the queue with lower pri
       priorityQueue.push(nextInLine,newPri );
@@ -121,13 +154,14 @@ function pushToFrontEnd(){
  
 }
   
-function saveToDatabase(text,image){
+function saveToDatabase(text,image ){
   var id = redis_client.incr( "id", function( err, index ){
-    var d = new Date().getTime();
+    var seconds = new Date().getTime();
     //console.log("DATE: " + d);
-    if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, "timeAdded", d, "shown", "0123",  function(err,res){
-      if(!err)console.log( "Saving to redis -> content:" + index);
+    if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, "timeAdded", seconds, "timesShown", 1,  function(err,res){
+      // if(!err)console.log( "Saving to redis -> content:" + index);
       last_saved = index;
+      //console.log("last saved set to " + last_saved);
     
       priorityQueue.push( last_saved, 100);
       
@@ -183,7 +217,7 @@ function handlePostData(pathname, response, request, postData) {
           // If successful, write filepath to redis
           //redis_client.rpush("content", fullFilePath);
           saveToDatabase (json.Subject,fullFilePath);
-          
+          //getTime
         } else { console.log("Error writing to file " + fullFilePath); }           
       }); //end fs.write 
     } //end if attachment
@@ -193,6 +227,9 @@ function handlePostData(pathname, response, request, postData) {
   
   response.end();
 }
+
+
+
 
 
 function receive_postmark_data(res,req){
