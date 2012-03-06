@@ -1,5 +1,9 @@
-var TWITTER_SEARCH_TERM = "#help";
-var TIME_TO_STAY_ON_SCREEN = 1000; // in milliseconds
+var TWITTER_SEARCH_TERM = "help";
+var MILLISECONDS_EACH_ITEM_SHOULD_STAY_ON_SCREEN = 5000; // in milliseconds
+
+// Try experiment with these to give more or less weight to the two parameters that determine the queue algorithm
+var TIMES_SHOWN_WEIGHT = 1;
+var TIME_SINCE_ADDED_WEIGTH = 100;
 
 // Modules
 var querystring = require("qs");
@@ -16,7 +20,7 @@ var priorityQueue = new PriorityQueue();
 
 // UGLY: global variable. Because of redis datastructure I see no other way...
 var last_saved = 0;
-var last_shown = 0;
+var last_pushed = 0;
 
 // Setup Redis
 var redis_client = redis.createClient();
@@ -62,6 +66,7 @@ twit.stream();
 /*
  *  Helperfunction that returns 8 random characters.
  */
+
 function randomString() {
  	var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
  	var string_length = 8;
@@ -73,17 +78,13 @@ function randomString() {
  	return randomstring;
 }
 
-pushAlgorithm();
 
-function pushAlgorithm(){
-  setInterval(pushToFrontEnd, TIME_TO_STAY_ON_SCREEN);
+function start(){
+  //TODO: Rebuild priorityQueue if it exists items in the db already.
+  setInterval(pushToFrontEnd, MILLISECONDS_EACH_ITEM_SHOULD_STAY_ON_SCREEN);
 }
 
-/*
- * Gets the most prioritized item and push it
- */
- 
-var pow = function(x, n) {
+function pow (x, n) {
  	if(n < 0){
  		return 0;
  	}
@@ -98,27 +99,34 @@ var pow = function(x, n) {
  	else{
  		return temp * temp * x;
  	}
- };
+};
 
+ /*
+  * Gets the most prioritized item and push it
+  */
 function pushToFrontEnd(){
-  
-  //Change to pop later
+  var currentTopPri = priorityQueue.getTopPri();
   var nextInLine = priorityQueue.pop();
-  //var timesShown = hgetA
-  //console.log("nextInLine: " + nextInLine );
-  
+  if (!nextInLine) return;
+
+  if (nextInLine === last_pushed){
+    currentTopPri = priorityQueue.getTopPri();
+    nextInLine = priorityQueue.pop();
+    if (!nextInLine) return;
+    
+    // TODO: calculate new priority
+  }
+  console.log( "Priority winning: " + currentTopPri);
+
   // Get the currently most prioritized hash
   var query = redis_client.hgetall( "content:" + nextInLine, function(err,res) {
     if(!err) {
       var now = new Date().getTime();
       var timesShown = res.timesShown;
-      //console.log("timesShown = " +  res.timeAdded);
       var timesShownNeg = timesShown * -1;
       var timeAdded = res.timeAdded;
       var hoursSinceAdded = (now - timeAdded)/(1000*60*60);
-      
-      //console.log( "timesShown=" +  timesShown + " | timeAdded=" + timeAdded);
-      
+            
       // Push
       var json = { text: res.text, image: res.image};
       json = JSON.stringify(json);
@@ -129,16 +137,16 @@ function pushToFrontEnd(){
         else {console.log("error while pushing");}
         
       });
-      
-      
 
+      // calculate new priority. This is the heart of the queue algorithm and based on the (p - 1) / (t + 2)^1.5
+      // algorithm, with added weights for experimentation.
+      var newPri = ((timesShownNeg-1) * TIMES_SHOWN_WEIGHT)/((hoursSinceAdded+2) * TIME_SINCE_ADDED_WEIGTH);
+      //var newPri = (timesShownNeg * TIMES_SHOWN_WEIGHT)/(hoursSinceAdded * TIME_SINCE_ADDED_WEIGTH);
       
-      
-      // calculate new priority
-      var newPri = (timesShownNeg-1)/(hoursSinceAdded+2);
-      //console.log("newpri " + newPri);
       var newPri = pow( newPri, 1.5 );
-      console.log("For item "+nextInLine+" -> timesShown:" + timesShown +  " | newPri: " + newPri + " | hoursSinceAdded: " + hoursSinceAdded );
+      
+      
+      console.log("item "+nextInLine+" -> timesShown:" + timesShown +  " | newPri: " + newPri + " | hoursSinceAdded: " + hoursSinceAdded );
       
       // Increase times shown
       timesShown++;
@@ -146,28 +154,27 @@ function pushToFrontEnd(){
       
       // TODO Push the nextInLine back in the queue with lower pri
       priorityQueue.push(nextInLine,newPri );
-      
+      last_pushed=nextInLine;  
     }
-    
     else console.log("WARNING no elements fetched from redis db: " + err);
   });
  
 }
-  
+
+/*
+ *  saveToDatabase(text,image)
+ *  Receives 
+ */
 function saveToDatabase(text,image ){
   var id = redis_client.incr( "id", function( err, index ){
-    var seconds = new Date().getTime();
+    var now = new Date().getTime();
     //console.log("DATE: " + d);
-    if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, "timeAdded", seconds, "timesShown", 1,  function(err,res){
+    if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, "timeAdded", now, "timesShown", 1,  function(err,res){
       // if(!err)console.log( "Saving to redis -> content:" + index);
       last_saved = index;
-      //console.log("last saved set to " + last_saved);
-    
-      priorityQueue.push( last_saved, 100);
-      
+      priorityQueue.push( last_saved, 100); 
     });
-    
-    }); 
+  }); 
 } 
 
 /*
@@ -228,15 +235,14 @@ function handlePostData(pathname, response, request, postData) {
   response.end();
 }
 
-
-
-
-
 function receive_postmark_data(res,req){
   //console.log("in receive postmark data");
 
   res.end();
 }
+
+
+start();
 
 exports.handlePostData = handlePostData;
 exports.receive_postmark_data = receive_postmark_data;

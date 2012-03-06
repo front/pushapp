@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<!-- 
+
+                                                                
+     ***** **                                                   
+  ******  **** *                                          *     
+ **   *  *  ***                                          **     
+*    *  *    *                                           **     
+    *  *         ***  ****       ****                  ******** 
+   ** **          **** **** *   * ***  * ***  ****    ********  
+   ** **           **   ****   *   ****   **** **** *    **     
+   ** ******       **         **    **     **   ****     **     
+   ** *****        **         **    **     **    **      **     
+   ** **           **         **    **     **    **      **     
+   *  **           **         **    **     **    **      **     
+      *            **         **    **     **    **      **     
+  *****            ***         ******      **    **      **     
+ *  *****           ***         ****       ***   ***      **    
+*    ***                                    ***   ***           
+*                                                               
+ **                                                             
+                                                                
+                                                                
+                                                                
+
+ -->
+
+
+<head>
+<script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+<script src="html5-realtime-push-notifications/src/lib/gritter/js/jquery.gritter.min.js"></script>
+<link href="html5-realtime-push-notifications/src/lib/gritter/css/jquery.gritter.css"rel="stylesheet" type="text/css" />
+<script src="js/pusher.min.js"></script>
+<script src="js/jquery.easing.1.3.js"></script>
+
+<script src="html5-realtime-push-notifications/src/PusherNotifier.js"></script>
+
+
+<link rel="stylesheet" type="text/css" href="css/style.css" />
+<style>
+	ul {
+		list-style: none;
+		padding: 0;
+		margin: 0 auto;
+		width: 100%;
+		height: 20em;
+	}
+	li {
+		height: 10em;
+		width: 50%;
+		margin-top: 100px;
+		
+		text-align: center;
+		cursor: pointer;
+		position:absolute;
+	}
+		li img {
+			width: 100%;
+		}
+
+	span {
+		display: block;
+		padding-top: 6em;
+	}
+	li.first {
+		margin-left: 2000px;
+	}
+	
+	
+</style>
+
+<script type="text/javascript">
+//setTimeout( animateToggle(), 1000);
+var toggle = false;
+function animateToggle(){
+	var speed = "slow";
+	var ease = 'easeInOutExpo';
+	var easeIn = 'easeInExpo';
+	var easeOut = 'easeOutExpo';
+	
+	if (toggle){
+	  $('li#0').animate({
+	    marginLeft: "+=2000px",
+	  },{duration: speed, easing: easeOut});
+	
+	  $('li#1').animate({
+	    marginLeft: "+=2000px",
+		  },{duration: speed, easing: easeIn});
+	}
+	else{
+		$('li#0').animate({
+	    marginLeft: "-=2000px",
+		  },{duration: speed, easing: easeIn});
+	
+	  $('li#1').animate({
+	    marginLeft: "-=2000px",
+		  },{duration: speed, easing: easeOut});
+	}
+		toggle = !toggle;
+}
+
+$(function() {
+  var pusher = new Pusher('b060dbe058972b568c93');
+
+	//setter opp status for pusher tilkobling
+	pusher.connection.bind('state_change', function(){
+		$("#conn_status").text(pusher.connection.state);
+		if (pusher.connection.state === "none" || pusher.connection.state ==="disconnected") {
+			$("image_ul").append("<li>Tjenesten kj&oslash;rer ikke for &oslash;yeblikket...</li>");
+		}
+	});
+
+	// Abbonnerer pÃ¥ kanalen messages, og ved hver event new_message endres skjerm ved jquery kall	
+  var channel = pusher.subscribe('messages');
+	var count = 0 ;
+	channel.bind("new_message", function(json){
+		//alert(count % 5);
+		console.log("GOT BATCH");
+		var json = JSON.parse(json);
+		console.log(json);
+		
+		
+		var img_selector = "li#" + count % 2 + " img";
+		var text_selector = "li#" + count % 2 + " div.text";
+		
+		//alert (selector);
+		
+		$( img_selector ).attr( "src" , json.image );
+		$( text_selector ).text(json.text);
+		count++;
+		setTimeout( animateToggle(), 2000);
+
+	});
+
+});
+</script>
+</head>
+
+
+
+<body>
+<div class="wrapper">
+   <!-- h1 id="header">I can haz realtime?</h1--> 
+	<section>
+		<ul id="image_ul">
+    			  <!-- li><img src="http://theawesomer.com/photos/2011/02/021711_business_cat_meme_2.jpg" /></li -->
+			<li id="0" class="first"><div class="text">testestestsetsetests</div><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
+			<li id="1" class="second"><div class="text">testestestsetsetests</div><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
+
+			
+    </ul>
+	</section>
+	<!-- section class="connection">
+		<div>connection status: <span id='conn_status'>none</span></div>
+	</section -->
+</div>
+</body>
+</html>
