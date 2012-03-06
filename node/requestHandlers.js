@@ -1,4 +1,4 @@
-var TWITTER_SEARCH_TERM = "help";
+var TWITTER_SEARCH_TERM = "#help";
 var MILLISECONDS_EACH_ITEM_SHOULD_STAY_ON_SCREEN = 5000; // in milliseconds
 
 // Try experiment with these to give more or less weight to the two parameters that determine the queue algorithm
@@ -170,9 +170,15 @@ function saveToDatabase(text,image ){
     var now = new Date().getTime();
     //console.log("DATE: " + d);
     if(!err) redis_client.hmset( "content:" + index, "text", text, "image", image, "timeAdded", now, "timesShown", 1,  function(err,res){
-      // if(!err)console.log( "Saving to redis -> content:" + index);
       last_saved = index;
       priorityQueue.push( last_saved, 100); 
+      
+      // Push new saved node to admin
+      var json = { index:index, text: text, image: image};
+      json = JSON.stringify(json);
+      pusher.trigger(channel, "new_unmoderated", json, socket_id, function(error, request, response) {});
+        
+      
     });
   }); 
 } 
@@ -192,8 +198,8 @@ function handlePostData(pathname, response, request, postData) {
   
   var json = JSON.parse(postData);
    
-  if ( pathname == "/sendtext" ) {
-      pusher.trigger(channel, event, json, socket_id, function(error, request, response) {});
+  if ( pathname == "/moderate" ) {
+      console.log("OK, will moderate");
   }
   
   
@@ -241,8 +247,13 @@ function receive_postmark_data(res,req){
   res.end();
 }
 
+function moderate(res,req){
+  console.log("in moderate");
+  res.end();
+}
 
 start();
 
 exports.handlePostData = handlePostData;
 exports.receive_postmark_data = receive_postmark_data;
+exports.moderate = moderate;

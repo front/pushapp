@@ -34,39 +34,26 @@
 <link href="html5-realtime-push-notifications/src/lib/gritter/css/jquery.gritter.css"rel="stylesheet" type="text/css" />
 <script src="js/pusher.min.js"></script>
 <script src="html5-realtime-push-notifications/src/PusherNotifier.js"></script>
-<script src="js/jquery.roundabout.js"></script>
-<script src="js/jquery.roundabout-shapes.js"></script>
+<script src="js/livequery.js"></script>
 
 
 <link rel="stylesheet" type="text/css" href="css/style.css" />
 <style>
-	ul {
-		list-style: none;
-		padding: 0;
-		margin: 0 auto;
-		width: 50%;
-		height: 20em;
+	table{
+		width: 1000px;
 	}
-	li {
-		height: 10em;
-		width: 100%;
-		margin-top: 100px;
-		text-align: center;
-		cursor: pointer;
+	table img{
+		height:100px;
 	}
-		li img {
-			width: 100%;
-		}
-		li.roundabout-in-focus {
-			cursor: default;
-		}
-	span {
-		display: block;
-		padding-top: 6em;
+	a{
+		color:white;
 	}
 </style>
 
 <script type="text/javascript">
+
+
+
 $(function() {
   var pusher = new Pusher('b060dbe058972b568c93');
 
@@ -81,51 +68,69 @@ $(function() {
 	// Abbonnerer pÃ¥ kanalen messages, og ved hver event new_message endres skjerm ved jquery kall	
   var channel = pusher.subscribe('messages');
 	var count = 0 ;
-	channel.bind("new_message",function(json){
+	
+	$('div.remove') 
+	    .livequery('click', function(event) { 
+	        alert('clicked'); 
+					console.log(event);
+					$.ajax({
+						type:"POST",
+						url:"localhost:8888/moderate",
+						data: "item=1"
+					});
+	        return false; 
+	    });
+	
+	channel.bind("new_unmoderated",function(json) {
 		//alert(count % 5);
-		console.log("GOT BATCH");
+		//console.log("GOT BATCH");
 		var json = JSON.parse(json);
-		console.log(json);
+		//console.log(json);
+		//alert("new_unmoderated");
 		
-		
-		var selector = "li#"+count % 5 +" img";
-		//alert (selector);
-		
-		$(selector).attr( "src" , json.image );
-		$("h1#header").text(json.text);
-		count++;
-		$("ul").roundabout("animateToNextChild")
-		
-	});
-	$(document).ready(function() {
-		$('ul').roundabout({
-			minOpacity: 0.0,
-			shape: 'lazySusan',
-			//autoplay:true,
-			//autoplayDuration:5000
+		$("#admintable").find('tbody')
+			.append($('<tr>')
+		  	.append($('<td>')
+		    	.append($('<div>')
+						.text(json.text)
+		      )
+				)
+				.append($('<td>')
+					.append($('<img>')
+						.attr('src',json.image)
+					)
+				)
+				.append($('<td>')
+					.append($('<div>')
+						.text('Nei, dette var uanstendig, vekk med det!')
+						.attr('class', 'remove')
+					)
+				)
+			);
 		});
-	});
-  //var notifier = new PusherNotifier(channel);
+
 });
 </script>
 </head>
 
-
-
-
-
 <body>
 <div class="wrapper">
-   <h1 id="header">I can haz realtime?</h1> >
-	<section>
-		<ul id="image_ul">
-    			  <!-- li><img src="http://theawesomer.com/photos/2011/02/021711_business_cat_meme_2.jpg" /></li -->
-			<li id="4"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
-			<li id="0"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
-			<li id="1"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
-			<li id="2"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
-			<li id="3"><img src="http://www.zwaldtransport.com/images/placeholders/placeholder1.jpg" /></li>
-    </ul>
+   <h1>Moderasjonpanel</h1>
+<section>
+	<table id="admintable">
+		<tbody>
+			<tr>
+				<td>Tekst</td>
+				<td>Bilde</td>
+				
+				<td>Moderer</td>
+				
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+
 	</section>
 	<section class="connection">
 		<div>connection status: <span id='conn_status'>none</span></div>
