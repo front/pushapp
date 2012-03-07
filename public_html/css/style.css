@@ -29,7 +29,7 @@ padding: 20px 5px;
 font-weight: bold;
 text-align: center;
 width: 780px;
-border-bottom: 1px dotted #000;
+border-bottom: 0px dotted #000;
 opacity: 1;
 transition: opacity .25s ease-in-out;
 -moz-transition: opacity .25s ease-in-out;
@@ -50,4 +50,5 @@ text-align: center;
 
 #conn_status {
 color: #91D6BC;
+margin-top:50px;
 }
