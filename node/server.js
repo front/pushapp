@@ -32,7 +32,7 @@ function start(route, handle) {
   });
 }
 
-  http.createServer(onRequest).listen(8080);
+  http.request(onRequest).listen(8080);
   console.log("Server has started.");
 }
 

@@ -1,3 +1,5 @@
+var TWITTER_ACTIVE = false;
+var EMAIL_ACTIVE = true;
 var TWITTER_SEARCH_TERM = "#help";
 var MILLISECONDS_EACH_ITEM_SHOULD_STAY_ON_SCREEN = 5000; // in milliseconds
 
@@ -38,26 +40,28 @@ var channel = 'messages';
 var socket_id = '1302.1081607';
 
 // Setup twitter
-var twit = new TwitterNode({
-   user: 'henrikakselsen', 
-   password: 'tr.ai4Dawin',
-   //host: 'my_proxy.my_company.com',         // proxy server name or ip addr
-   //port: 8080,                              // proxy port!
-   track: [ TWITTER_SEARCH_TERM ]         // sports!
-   //follow: [12345, 67890],                  // follow these random users
-   //locations: [-122.75, 36.8, -121.75, 37.8] // tweets in SF
- });
- 
- twit.addListener('tweet', function(tweet) {
-     //console.log("New tweet: " + tweet.text);
-     saveTweet(tweet);
-   })
-   twit.addListener('error', function(error) {
-     console.log("twitter error: " + error.message);
-   });
 
-twit.stream();
-  
+if (TWITTER_ACTIVE){
+  var twit = new TwitterNode({
+     user: 'henrikakselsen', 
+     password: 'tr.ai4Dawin',
+     //host: 'my_proxy.my_company.com',         // proxy server name or ip addr
+     //port: 8080,                              // proxy port!
+     track: [ TWITTER_SEARCH_TERM ]         // sports!
+     //follow: [12345, 67890],                  // follow these random users
+     //locations: [-122.75, 36.8, -121.75, 37.8] // tweets in SF
+   });
+ 
+   twit.addListener('tweet', function(tweet) {
+       //console.log("New tweet: " + tweet.text);
+       saveTweet(tweet);
+     })
+     twit.addListener('error', function(error) {
+       console.log("twitter error: " + error.message);
+     });
+
+  twit.stream();
+}
   
   function saveTweet(tweet){
     saveToDatabase( tweet.text, "http://api.twitter.com/1/users/profile_image?screen_name="+tweet.user.screen_name+"&size=bigger");
