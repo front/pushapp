@@ -217,10 +217,11 @@ function handlePostData(pathname, response, request, postData) {
   
   
   if (pathname == "/receive_postmark_data"){
-            
+    
+    console.log("receive postmark data");        
     //Grab Subject if it exists
     if (json.Subject){
-      saveToDatabase("message", json.Subject);
+      //saveToDatabase("message", json.Subject);
       console.log("Subject: " + json.Subject);
     } 
     else { console.log("WARNING No subject"); }
@@ -229,7 +230,7 @@ function handlePostData(pathname, response, request, postData) {
     // Grab the first attachment if it exists
     if (json.Attachments[0]) {
       var fileContent = json.Attachments[0].Content;
-      var decodedFileContent = new Buffer(fileContent, 'base64').toString('ascii');
+      var decodedFileContent = new Buffer(fileContent, 'base64');
     
       // Create full path for the file to be created. Add 8 random characters in beginning of filename to avoid duplicate names.
       var fileName = json.Attachments[0].Name;
@@ -254,7 +255,7 @@ function handlePostData(pathname, response, request, postData) {
 }
 
 function receive_postmark_data(res,req){
-  //console.log("in receive postmark data");
+  console.log("in receive postmark data");
 
   res.end();
 }
