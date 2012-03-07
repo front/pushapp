@@ -189,6 +189,17 @@ function saveToDatabase(text,image ){
  *  This is called from server each time there is postdata attached to the request.
  *  It will always recevie the full batch of postdata. TODO: Break this up into smaller pieces
  */ 
+ function remove(index){
+   
+   //Remove from db
+   redis_client.hdel("content:"+index, "text","image","timeAdded","timesShown");
+   
+   //Remove from queue
+   
+   
+ }
+ 
+ 
 function handlePostData(pathname, response, request, postData) {
 
   response.on("end", function(){
@@ -200,6 +211,8 @@ function handlePostData(pathname, response, request, postData) {
    
   if ( pathname == "/moderate" ) {
       console.log("OK, will moderate");
+      console.log(json.index);
+      remove(json.index);
   }
   
   
@@ -235,7 +248,6 @@ function handlePostData(pathname, response, request, postData) {
       }); //end fs.write 
     } //end if attachment
     else { console.log(" WARNING No attachment: "); }
-    
   }  
   
   response.end();
@@ -249,7 +261,9 @@ function receive_postmark_data(res,req){
 
 function moderate(res,req){
   console.log("in moderate");
-  res.end();
+  res.writeHead(200, {'Content-Type': 'text/plain'});
+  
+  res.end('Hello World\n');
 }
 
 start();

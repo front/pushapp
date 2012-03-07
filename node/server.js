@@ -26,6 +26,7 @@ function start(route, handle) {
       }    
       else{
         console.log("NO POST DATA");
+        //console.log(request);
       }
       
   });

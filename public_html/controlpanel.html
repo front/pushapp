@@ -71,13 +71,28 @@ $(function() {
 	
 	$('div.remove') 
 	    .livequery('click', function(event) { 
-	        alert('clicked'); 
+	        alert('will remove'); 
 					console.log(event);
-					$.ajax({
-						type:"POST",
-						url:"localhost:8888/moderate",
-						data: "item=1"
-					});
+					var query = $.ajax({
+						type: "POST",
+						url: "http://localhost:8888/moderate",
+						data: '{ "index": "1"}',
+						contentType: "application/json",
+						complete: function(){alert("complete");},
+						error: function(xhr,status,error){
+							alert("error");
+							console.log(xhr);
+							console.log(status);
+							console.log(error);
+							}
+						});
+					//query.complete(function(){alert("finished");})
+				/*	query.error(function(xhr,status,error){
+						alert("error");
+						console.log(xhr);
+						console.log(status);
+						console.log(error);
+					}); */
 	        return false; 
 	    });
 	
@@ -102,7 +117,7 @@ $(function() {
 				)
 				.append($('<td>')
 					.append($('<div>')
-						.text('Nei, dette var uanstendig, vekk med det!')
+						.text('Remove')
 						.attr('class', 'remove')
 					)
 				)
@@ -110,6 +125,24 @@ $(function() {
 		});
 
 });
+/*
+$(document).ready(function(){
+	var query = $.ajax({
+		type: "POST",
+		url: "http://localhost:8888/moderate",
+		data: '{ index: "1"}',
+		contentType: "application/json",
+		accepts: "application/json",
+		complete: function(){alert("complete");},
+		error: function(xhr,status,error){
+			alert("error");
+			console.log(xhr);
+			console.log(status);
+			console.log(error);
+			}
+		});
+});
+*/
 </script>
 </head>
 
