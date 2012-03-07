@@ -71,11 +71,11 @@ $(function() {
 	
 	$('div.remove') 
 	    .livequery('click', function(event) { 
-	        alert('will remove'); 
+	        alert('Removed'); 
 					console.log(event);
 					var query = $.ajax({
 						type: "POST",
-						url: "http://localhost:8888/moderate",
+						url: "http://pushapp.vps4.front.no:8081/moderate",
 						data: '{ "index": "1"}',
 						contentType: "application/json",
 						complete: function(){alert("complete");},

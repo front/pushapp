@@ -37,9 +37,9 @@ transition: opacity .25s ease-in-out;
 -webkit-animation:bounceIn 2s;
 }
 
-img {
-max-width: 400px;
-max-height: 400px;
+img{
+max-width: 800px;
+max-height: 800px;
 }
 
 

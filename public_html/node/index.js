@@ -8,5 +8,4 @@ handle["/receive_postmark_data"] = requestHandlers.receive_postmark_data;
 
 
 
-
 server.start(router.route, handle);

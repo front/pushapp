@@ -2,7 +2,7 @@ module.exports = {
 	serverPort: 8081,
 	redisPort: 6379,
 	twitterUser: 'henrikakselsen',
-	twitterPassword: '',
+	twitterPassword: 'tr.ai4Dawin',
 	twitterSearchTerm: '#help',
 	pusherAppID: '15933',
 	pusherKey:'b060dbe058972b568c93',
@@ -11,5 +11,7 @@ module.exports = {
 	channel:'messages',
 	timesShownWeight: 1,
 	ageWeight: 100,
-	timeInterval: 5000
+	timeInterval: 5000,
+	twitterActive: true,
+	emailActive: true
 };

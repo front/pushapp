@@ -67,4 +67,4 @@ curl -i -X POST -H Accept:application/json -H Content-Type:application/json  -d 
  "Tag": "",
  "TextBody": "[ASCII]",
  "To": "451d9b70cf9364d23ff6f9d51d870251569e+ahoy@inbound.postmarkapp.com"
-}' 'http://localhost:8888/receive_postmark_data'
+}' 'http://pushapp.vps4.front.no:8081/receive_postmark_data'

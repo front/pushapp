@@ -1,9 +1,6 @@
 var config = require('./config');
 
 
-var TWITTER_ACTIVE = false;
-var EMAIL_ACTIVE = true;
-
 // Modules
 var querystring = require("qs");
 var fs = require("fs");
@@ -13,9 +10,6 @@ var TwitterNode = require("twitter-node").TwitterNode;
 var PriorityQueue = require("Priority-Queue-NodeJS");
 var path = require('path');
 var priorityQueue = new PriorityQueue();
-
-//var temp = require('temp');
-//var MailParser = require("mailparser").MailParser;
 
 // UGLY: global variable. Because of redis datastructure I see no other way...
 var last_saved = 0;
@@ -36,7 +30,8 @@ var pusher = new Pusher({
 
 // Setup twitter
 
-if (TWITTER_ACTIVE){
+if (config.twitterActive){
+  
   var twit = new TwitterNode({
      user: config.twitterUser, 
      password: config.twitterPassword,
@@ -81,7 +76,7 @@ function start(){
   //TODO: Rebuild priorityQueue if it exists items in the db already.
   setInterval(pushToFrontEnd, config.timeInterval);
 }
-
+/*
 function pow (x, n) {
  	if(n < 0){
  		return 0;
@@ -98,6 +93,14 @@ function pow (x, n) {
  		return temp * temp * x;
  	}
 };
+*/
+function pushContent(text,image){
+  var json = { text: text, image: image};
+  json = JSON.stringify(json);
+  pusher.trigger(config.channel, "new_message", json, config.socket_id, function(err, req, res) {
+    if(err) console.log( err );  
+  });
+}
 
  /*
   * Gets the most prioritized item and push it
@@ -118,43 +121,32 @@ function pushToFrontEnd(){
 
   // Get the currently most prioritized hash
   var query = redis_client.hgetall( "content:" + nextInLine, function(err,res) {
-    if(!err) {
-      var now = new Date().getTime();
-      var timesShown = res.timesShown;
-      var timesShownNeg = timesShown * -1;
-      var timeAdded = res.timeAdded;
-      var hoursSinceAdded = (now - timeAdded)/(1000*60*60);
-            
-      // Push
-      var json = { text: res.text, image: res.image};
-      json = JSON.stringify(json);
-      pusher.trigger(config.channel, "new_message", json, config.socket_id, function(error, request, response) {
-        if(!err) {
-          //console.log("successfully pushed")
-          }
-        else {console.log("error while pushing");}
-        
-      });
-
-      // calculate new priority. This is the heart of the queue algorithm and based on the (p - 1) / (t + 2)^1.5
-      // algorithm, with added weights for experimentation.
-      var newPri = ((timesShownNeg-1) * config.timesShownWeight)/((hoursSinceAdded+2) * config.ageWeight);
-      //var newPri = (timesShownNeg * TIMES_SHOWN_WEIGHT)/(hoursSinceAdded * TIME_SINCE_ADDED_WEIGTH);
-      
-      var newPri = pow( newPri, 1.5 );
-      
-      
-      console.log("item "+nextInLine+" -> timesShown:" + timesShown +  " | newPri: " + newPri + " | hoursSinceAdded: " + hoursSinceAdded );
-      
-      // Increase times shown
-      timesShown++;
-      redis_client.hset( "content:" + nextInLine, "timesShown", timesShown );
-      
-      // TODO Push the nextInLine back in the queue with lower pri
-      priorityQueue.push(nextInLine,newPri );
-      last_pushed=nextInLine;  
+    
+    if (err){
+      console.log(err);
+      return;
     }
-    else console.log("WARNING no elements fetched from redis db: " + err);
+    var timesShown = res.timesShown;
+    var timeAdded = res.timeAdded;
+    var hoursSinceAdded = (new Date().getTime() - timeAdded)/(1000*60*60);
+          
+    // Push
+    pushContent(res.text, res.image);
+
+    // calculate new priority. This is the heart of the queue algorithm and based on the (p - 1) / (t + 2)^1.5
+    // algorithm, with added weights for experimentation.
+    var newPri = (((timesShown * -1) - 1) * config.timesShownWeight)/((hoursSinceAdded + 2) * config.ageWeight);      
+    var newPri = Math.pow( newPri, 1.5 );
+    
+    console.log("item "+nextInLine+" -> timesShown:" + timesShown +  " | newPri: " + newPri + " | hoursSinceAdded: " + hoursSinceAdded );
+    
+    // Increase times shown
+    timesShown++;
+    redis_client.hset( "content:" + nextInLine, "timesShown", timesShown );
+    
+    // Push the nextInLine back in the queue with lower pri
+    priorityQueue.push(nextInLine,newPri );
+    last_pushed=nextInLine;  
   });
  
 }
@@ -187,7 +179,7 @@ function saveToDatabase(text,image ){
  *  This is called from server each time there is postdata attached to the request.
  *  It will always recevie the full batch of postdata. TODO: Break this up into smaller pieces
  */ 
- function remove(index){
+ function removeItem(index){
    
    //Remove from db
    redis_client.hdel("content:"+index, "text","image","timeAdded","timesShown");
@@ -195,40 +187,35 @@ function saveToDatabase(text,image ){
    //Remove from queue
    
    
+   
  }
  
  
 function handlePostData(pathname, response, request, postData) {
-
+/*
   response.on("end", function(){
-    console.log("this is the end");
     var json = JSON.parse(postData);    
-  });
+  }); */
   
   var json = JSON.parse(postData);
    
   if ( pathname == "/moderate" ) {
-      console.log("OK, will moderate");
+      console.log("Item received for moderation");
       console.log(json.index);
-      remove(json.index);
+      removeItem(json.index);
   }
   
   
   if (pathname == "/receive_postmark_data"){
     
-    console.log("receive postmark data");        
-    //Grab Subject if it exists
-    if (json.Subject){
-      //saveToDatabase("message", json.Subject);
-      console.log("Subject: " + json.Subject);
-    } 
-    else { console.log("WARNING No subject"); }
+    console.log("receive postmark data");  
     
+    var Subject = (json.Subject) ? json.Subject : "";
     
     // Grab the first attachment if it exists
     if (json.Attachments[0]) {
-      var fileContent = json.Attachments[0].Content;
-      var decodedFileContent = new Buffer(fileContent, 'base64');
+      
+      var decodedFileContent = new Buffer(json.Attachments[0].Content, 'base64');
     
       // Create full path for the file to be created. Add 8 random characters in beginning of filename to avoid duplicate names.
       var fileName = json.Attachments[0].Name;
@@ -240,12 +227,14 @@ function handlePostData(pathname, response, request, postData) {
           console.log( "File saved: " + fullFilePath );
           
           // If successful, write filepath to redis
-          //redis_client.rpush("content", fullFilePath);
-          saveToDatabase (json.Subject,"node/" + fullFilePath);
-          //getTime
-        } else { console.log("Error writing to file " + fullFilePath); }           
-      }); //end fs.write 
-    } //end if attachment
+          saveToDatabase (Subject,"node/" + fullFilePath);
+        } else { 
+          console.log("Error writing to file " + fullFilePath); 
+          saveToDatabase (Subject,null);
+          } 
+                
+      });  
+    }
     else { console.log(" WARNING No attachment: "); }
   }  
   
