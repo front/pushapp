@@ -1,5 +1,6 @@
 var http = require("http");
 var url = require("url");
+var config = require('./config');
 
 
 
@@ -32,7 +33,7 @@ function start(route, handle) {
   });
 }
 
-  http.createServer(onRequest).listen(8081);
+  http.createServer(onRequest).listen(config.serverPort);
   console.log("Server has started.");
 }
 

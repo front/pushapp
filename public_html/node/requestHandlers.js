@@ -1,11 +1,8 @@
+var config = require('./config');
+
+
 var TWITTER_ACTIVE = false;
 var EMAIL_ACTIVE = true;
-var TWITTER_SEARCH_TERM = "#help";
-var MILLISECONDS_EACH_ITEM_SHOULD_STAY_ON_SCREEN = 5000; // in milliseconds
-
-// Try experiment with these to give more or less weight to the two parameters that determine the queue algorithm
-var TIMES_SHOWN_WEIGHT = 1;
-var TIME_SINCE_ADDED_WEIGTH = 100;
 
 // Modules
 var querystring = require("qs");
@@ -32,28 +29,25 @@ redis_client.on("error", function (err) {
 
 // Setup Pusher    
 var pusher = new Pusher({
-  appId: '15933',
-  key: 'b060dbe058972b568c93',
-  secret: 'f5be4e8224711cb58a4b'
+  appId: config.pusherAppID,
+  key: config.pusherKey,
+  secret: config.pusherSecret
 });
-var channel = 'messages';
-var socket_id = '1302.1081607';
 
 // Setup twitter
 
 if (TWITTER_ACTIVE){
   var twit = new TwitterNode({
-     user: 'henrikakselsen', 
-     password: 'tr.ai4Dawin',
+     user: config.twitterUser, 
+     password: config.twitterPassword,
      //host: 'my_proxy.my_company.com',         // proxy server name or ip addr
      //port: 8080,                              // proxy port!
-     track: [ TWITTER_SEARCH_TERM ]         // sports!
+     track: [ config.twitterSearchTerm ]         // sports!
      //follow: [12345, 67890],                  // follow these random users
      //locations: [-122.75, 36.8, -121.75, 37.8] // tweets in SF
    });
  
    twit.addListener('tweet', function(tweet) {
-       //console.log("New tweet: " + tweet.text);
        saveTweet(tweet);
      })
      twit.addListener('error', function(error) {
@@ -85,7 +79,7 @@ function randomString() {
 
 function start(){
   //TODO: Rebuild priorityQueue if it exists items in the db already.
-  setInterval(pushToFrontEnd, MILLISECONDS_EACH_ITEM_SHOULD_STAY_ON_SCREEN);
+  setInterval(pushToFrontEnd, config.timeInterval);
 }
 
 function pow (x, n) {
@@ -134,7 +128,7 @@ function pushToFrontEnd(){
       // Push
       var json = { text: res.text, image: res.image};
       json = JSON.stringify(json);
-      pusher.trigger(channel, "new_message", json, socket_id, function(error, request, response) {
+      pusher.trigger(config.channel, "new_message", json, config.socket_id, function(error, request, response) {
         if(!err) {
           //console.log("successfully pushed")
           }
@@ -144,7 +138,7 @@ function pushToFrontEnd(){
 
       // calculate new priority. This is the heart of the queue algorithm and based on the (p - 1) / (t + 2)^1.5
       // algorithm, with added weights for experimentation.
-      var newPri = ((timesShownNeg-1) * TIMES_SHOWN_WEIGHT)/((hoursSinceAdded+2) * TIME_SINCE_ADDED_WEIGTH);
+      var newPri = ((timesShownNeg-1) * config.timesShownWeight)/((hoursSinceAdded+2) * config.ageWeight);
       //var newPri = (timesShownNeg * TIMES_SHOWN_WEIGHT)/(hoursSinceAdded * TIME_SINCE_ADDED_WEIGTH);
       
       var newPri = pow( newPri, 1.5 );
@@ -180,7 +174,7 @@ function saveToDatabase(text,image ){
       // Push new saved node to admin
       var json = { index:index, text: text, image: image};
       json = JSON.stringify(json);
-      pusher.trigger(channel, "new_unmoderated", json, socket_id, function(error, request, response) {});
+      pusher.trigger(config.channel, "new_unmoderated", json, config.socket_id, function(error, request, response) {});
         
       
     });
