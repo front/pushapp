@@ -13,5 +13,6 @@ module.exports = {
 	ageWeight: 100,
 	timeInterval: 5000,
 	twitterActive: true,
-	emailActive: true
+	emailActive: true,
+	twitterImageSize : "large"
 };
